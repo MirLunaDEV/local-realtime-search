@@ -94,6 +94,36 @@ Every response includes `mode_profile`, `validation`, `knowledge_prior`, timings
 
 The web UI uses `/ask/stream` to show progress states, source links, and provider health while answers are generated.
 
+## LM Studio MCP
+
+LM Studio 0.3.17+ can use MCP servers from the app UI, and LM Studio 0.4.0+ can also call MCP through its API. This project exposes one local MCP tool:
+
+- `local_research`: collects realtime web evidence, citation IDs, clickable source URLs, provider health, warnings, and cache metadata.
+
+The MCP tool intentionally does not call LM Studio for final synthesis. LM Studio calls the tool, receives evidence, then your currently loaded chat model writes the final answer from that evidence.
+
+Install the MCP extra:
+
+```powershell
+uv sync --extra mcp
+```
+
+In LM Studio, open the right sidebar `Program` tab, choose `Install > Edit mcp.json`, and add the server config from [`mcp/lmstudio.mcp.json`](mcp/lmstudio.mcp.json). Replace `<REPLACE_WITH_REPO_PATH>` with this repository path.
+
+Example Windows `cwd`:
+
+```json
+"cwd": "C:\\Users\\user\\Documents\\Codex\\2026-05-31\\lm-stduio-gpt\\work\\local-realtime-search"
+```
+
+After saving, restart or reconnect MCP tools in LM Studio and ask something current, for example:
+
+```text
+Use local_research to answer: What changed recently in LM Studio MCP support?
+```
+
+If LM Studio shows the tool call/result, the integration is working. The exact progress/source panel UI is controlled by LM Studio, but the tool result includes URLs and citation IDs for the model to surface.
+
 ## Benchmark
 
 With LM Studio, SearXNG, and the FastAPI service running:
@@ -130,6 +160,7 @@ V2 adds:
 - Provider health telemetry for search providers.
 - Direct local date/time answers.
 - Browser UI with progress, clickable sources, and provider health.
+- MCP server for LM Studio tool integration.
 - Safer failure when reasoning models return empty final content.
 - `fast`, `balanced`, and `deep` mode profiles.
 - Knowledge priors for stable architecture guidance.

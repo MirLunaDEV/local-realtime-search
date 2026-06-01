@@ -44,7 +44,6 @@ def summarize_search_traces(traces: list[SearchTrace]) -> list[dict[str, object]
     for summary in by_provider.values():
         requests = int(summary["requests"])
         failures = int(summary["failures"])
-        successes = int(summary["successes"])
         result_count = int(summary["result_count"])
         avg_elapsed_ms = round(int(summary.pop("elapsed_total_ms")) / max(1, requests))
         if failures == requests:

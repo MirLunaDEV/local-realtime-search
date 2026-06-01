@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "local-realtime-search": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--extra",
+        "mcp",
+        "python",
+        "scripts/mcp_server.py"
+      ],
+      "cwd": "<REPLACE_WITH_REPO_PATH>",
+      "env": {
+        "LOCAL_TIMEZONE": "Asia/Seoul",
+        "LM_STUDIO_MODEL": "your-loaded-lm-studio-model-id",
+        "SEARXNG_BASE_URL": "http://127.0.0.1:8080"
+      }
+    }
+  }
+}

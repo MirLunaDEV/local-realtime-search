@@ -124,7 +124,7 @@ def _warnings(evidence: list[EvidenceChunk], searched_count: int, fetched_count:
     return warnings
 
 
-async def answer_question(question: str, *, mode: str, freshness: str | None, settings: Settings) -> dict[str, object]:
+async def collect_research_context(question: str, *, mode: str, freshness: str | None, settings: Settings) -> dict[str, object]:
     started = time.perf_counter()
     marks: dict[str, int] = {}
     cache = SearchCache(settings.cache_path)
@@ -136,7 +136,7 @@ async def answer_question(question: str, *, mode: str, freshness: str | None, se
     if direct_answer is not None:
         elapsed_ms = int((time.perf_counter() - started) * 1000)
         return {
-            "answer": direct_answer.answer,
+            "direct_answer": direct_answer.answer,
             "queries": [],
             "citations": [],
             "sources": [],
@@ -164,6 +164,7 @@ async def answer_question(question: str, *, mode: str, freshness: str | None, se
             "mode_profile": asdict(profile),
             "model": settings.lm_studio_model,
             "knowledge_prior": {"label": direct_answer.label, "text": "Answered directly from the local runtime clock."},
+            "_evidence_chunks": [],
         }
 
     queries = plan_queries(question, max_queries=profile.max_query_variants, freshness=freshness)
@@ -228,6 +229,51 @@ async def answer_question(question: str, *, mode: str, freshness: str | None, se
     evidence = select_evidence(evidence, question, profile.max_evidence_chunks, profile.max_evidence_chars)
     marks["fetch"] = int((time.perf_counter() - started) * 1000)
 
+    timings = {
+        "planning": marks["planning"],
+        "search": marks["search"] - marks["planning"],
+        "fetch": marks["fetch"] - marks["search"],
+        "synthesis": 0,
+        "total": marks["fetch"],
+    }
+
+    return {
+        "direct_answer": None,
+        "queries": queries,
+        "citations": [asdict(chunk) for chunk in evidence],
+        "sources": [
+            asdict(item.result) | {"canonical_url": item.canonical_url, "score": item.score, "source_label": item.source_label}
+            for item in ranked
+        ],
+        "timings_ms": timings,
+        "cache_hits": cache_hits,
+        "fetcher_counts": fetcher_counts,
+        "search_traces": [asdict(trace) for trace in search_traces],
+        "provider_health": summarize_search_traces(search_traces),
+        "confidence": "medium" if fetched_count >= 3 else "low",
+        "warnings": _warnings(evidence, len(search_results), fetched_count),
+        "mode": profile.effective_mode,
+        "requested_mode": profile.requested_mode,
+        "mode_profile": asdict(profile),
+        "model": settings.lm_studio_model,
+        "knowledge_prior": asdict(prior) if prior else None,
+        "_evidence_chunks": evidence,
+    }
+
+
+async def answer_question(question: str, *, mode: str, freshness: str | None, settings: Settings) -> dict[str, object]:
+    started = time.perf_counter()
+    context = await collect_research_context(question, mode=mode, freshness=freshness, settings=settings)
+    evidence = context.pop("_evidence_chunks")
+    direct_answer = context.pop("direct_answer")
+
+    if direct_answer is not None:
+        context["answer"] = direct_answer
+        return context
+
+    profile = get_mode_profile(mode, settings)
+    prior = get_knowledge_prior(question)
+
     if evidence:
         lm = LmStudioClient(
             settings.lm_studio_base_url,
@@ -266,37 +312,16 @@ async def answer_question(question: str, *, mode: str, freshness: str | None, se
             answer = f"LM Studio synthesis failed after collecting web evidence: {detail}"
     else:
         answer = "I could not collect usable web evidence for this question."
-    marks["synthesis"] = int((time.perf_counter() - started) * 1000)
     answer = cleanup_answer_for_prior(answer, question, prior)
-
-    timings = {
-        "planning": marks["planning"],
-        "search": marks["search"] - marks["planning"],
-        "fetch": marks["fetch"] - marks["search"],
-        "synthesis": marks["synthesis"] - marks["fetch"],
-        "total": marks["synthesis"],
-    }
+    total_ms = int((time.perf_counter() - started) * 1000)
+    timings = dict(context["timings_ms"])
+    timings["synthesis"] = max(0, total_ms - int(timings["total"]))
+    timings["total"] = total_ms
     validation = validate_answer(answer, evidence, prior)
 
-    return {
+    context.update({
         "answer": answer,
-        "queries": queries,
-        "citations": [asdict(chunk) for chunk in evidence],
-        "sources": [
-            asdict(item.result) | {"canonical_url": item.canonical_url, "score": item.score, "source_label": item.source_label}
-            for item in ranked
-        ],
         "timings_ms": timings,
-        "cache_hits": cache_hits,
-        "fetcher_counts": fetcher_counts,
-        "search_traces": [asdict(trace) for trace in search_traces],
-        "provider_health": summarize_search_traces(search_traces),
-        "confidence": "medium" if fetched_count >= 3 else "low",
-        "warnings": _warnings(evidence, len(search_results), fetched_count),
         "validation": validation.to_dict(),
-        "mode": profile.effective_mode,
-        "requested_mode": profile.requested_mode,
-        "mode_profile": asdict(profile),
-        "model": settings.lm_studio_model,
-        "knowledge_prior": asdict(prior) if prior else None,
-    }
+    })
+    return context
