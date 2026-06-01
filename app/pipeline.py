@@ -15,6 +15,7 @@ from app.lmstudio import EmptyFinalContentError, LmStudioClient
 from app.modes import get_mode_profile
 from app.planner import plan_queries
 from app.prompts import build_answer_messages, build_finalizer_messages
+from app.provider_health import SearchTrace, summarize_search_traces
 from app.ranking import rank_results
 from app.search.base import SearchResult
 from app.search.duckduckgo import DuckDuckGoHtmlProvider
@@ -43,17 +44,42 @@ async def _safe_search(
     freshness: str | None,
     cache: SearchCache,
     ttl_seconds: int,
-) -> tuple[list[SearchResult], bool]:
+) -> tuple[list[SearchResult], SearchTrace]:
+    started = time.perf_counter()
+    provider_name = str(getattr(provider, "name", provider.__class__.__name__))
     key = _search_cache_key(provider, query, freshness)
     cached = cache.get_search(key, ttl_seconds)
     if cached is not None:
-        return cached, True
+        return cached, SearchTrace(
+            provider=provider_name,
+            query=query,
+            freshness=freshness,
+            cache_hit=True,
+            result_count=len(cached),
+            elapsed_ms=int((time.perf_counter() - started) * 1000),
+        )
     try:
         results = await provider.search(query, freshness=FRESHNESS_MAP.get(freshness or ""), limit=10)
         cache.set_search(key, results)
-        return results, False
-    except Exception:
-        return [], False
+        return results, SearchTrace(
+            provider=provider_name,
+            query=query,
+            freshness=freshness,
+            cache_hit=False,
+            result_count=len(results),
+            elapsed_ms=int((time.perf_counter() - started) * 1000),
+        )
+    except Exception as exc:
+        detail = str(exc) or exc.__class__.__name__
+        return [], SearchTrace(
+            provider=provider_name,
+            query=query,
+            freshness=freshness,
+            cache_hit=False,
+            result_count=0,
+            elapsed_ms=int((time.perf_counter() - started) * 1000),
+            error=detail[:300],
+        )
 
 
 async def _safe_fetch(
@@ -121,8 +147,10 @@ async def answer_question(question: str, *, mode: str, freshness: str | None, se
     ]
     search_batches = await asyncio.gather(*search_tasks)
     search_results = []
-    for batch, cache_hit in search_batches:
-        if cache_hit:
+    search_traces = []
+    for batch, trace in search_batches:
+        search_traces.append(trace)
+        if trace.cache_hit:
             cache_hits["search"] += 1
         search_results.extend(batch)
     marks["search"] = int((time.perf_counter() - started) * 1000)
@@ -226,6 +254,8 @@ async def answer_question(question: str, *, mode: str, freshness: str | None, se
         "timings_ms": timings,
         "cache_hits": cache_hits,
         "fetcher_counts": fetcher_counts,
+        "search_traces": [asdict(trace) for trace in search_traces],
+        "provider_health": summarize_search_traces(search_traces),
         "confidence": "medium" if fetched_count >= 3 else "low",
         "warnings": _warnings(evidence, len(search_results), fetched_count),
         "validation": validation.to_dict(),

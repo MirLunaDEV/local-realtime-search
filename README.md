@@ -1,5 +1,7 @@
 # Local Realtime Search
 
+[![CI](https://github.com/MirLunaDEV/local-realtime-search/actions/workflows/ci.yml/badge.svg)](https://github.com/MirLunaDEV/local-realtime-search/actions/workflows/ci.yml)
+
 Fast realtime web evidence layer for LM Studio local models.
 
 This prototype is intentionally optimized for normal assistant-style answers, not long-running deep research. It searches broadly, fetches shallowly, compresses evidence, and asks the local model to answer with citations.
@@ -44,7 +46,7 @@ If SearXNG is not running, the prototype also tries a free DuckDuckGo HTML fallb
 uv sync --extra crawl4ai
 ```
 
-The app does not auto-switch models. If `LM_STUDIO_MODEL` is unavailable or returns no final content, synthesis fails visibly instead of silently falling back to another model.
+The app does not auto-switch models. Set `LM_STUDIO_MODEL` to the exact model ID loaded in LM Studio. If that model is unavailable or returns no final content, synthesis fails visibly instead of silently falling back to another model.
 
 Reasoning models may need a large generation budget before they emit final `content`. The default V2 settings use `LM_STUDIO_MAX_TOKENS=4096` and `SYNTHESIS_TIMEOUT_SECONDS=180` for this reason.
 
@@ -79,7 +81,7 @@ Available modes:
 | `balanced` | More complete answers | 16 fetches, 20 evidence chunks, 24k evidence chars, 4096 generation tokens, 180s synthesis timeout |
 | `deep` | Slow, broader evidence gathering | 24+ fetches, 40+ evidence chunks, 50k evidence chars, 8192 generation tokens, 420s synthesis timeout |
 
-Every response includes `mode_profile`, `validation`, `knowledge_prior`, timings, citations, sources, warnings, cache hit metadata, and `fetcher_counts`.
+Every response includes `mode_profile`, `validation`, `knowledge_prior`, timings, citations, sources, warnings, cache hit metadata, `fetcher_counts`, `search_traces`, and `provider_health`.
 
 ## Benchmark
 
@@ -110,10 +112,11 @@ Every response includes timings, sources, citations, and warnings when evidence 
 
 V2 adds:
 
-- Explicit LM Studio model selection, defaulting to `qwen3.5-9b-uncensored-hauhaucs-aggressive`.
+- Explicit LM Studio model selection with no automatic fallback.
 - Source policy scoring for official docs, GitHub, government sites, docs, release notes, social/video, and commentary.
 - SQLite search/page cache.
 - `cache_hits` response metadata.
+- Provider health telemetry for search providers.
 - Safer failure when reasoning models return empty final content.
 - `fast`, `balanced`, and `deep` mode profiles.
 - Knowledge priors for stable architecture guidance.
