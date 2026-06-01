@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start LM Studio...
+        2. Enable MCP...
+        3. Ask...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste LM Studio MCP logs, terminal logs, or traceback.
+      render: text
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "Windows 11, LM Studio 0.4.15, Python 3.12, Docker Desktop"

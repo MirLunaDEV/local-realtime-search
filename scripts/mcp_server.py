@@ -10,9 +10,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.config import get_settings
-from app.mcp_payload import format_mcp_research_payload
-from app.pipeline import collect_research_context
+from app.config import get_settings  # noqa: E402
+from app.mcp_payload import format_mcp_research_payload  # noqa: E402
+from app.pipeline import collect_research_context  # noqa: E402
 
 
 mcp = FastMCP("local-realtime-search", json_response=True)
