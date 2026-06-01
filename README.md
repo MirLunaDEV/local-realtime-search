@@ -65,6 +65,12 @@ Then start the API:
 uvicorn app.main:app --reload --port 8787
 ```
 
+Open the local research UI:
+
+```text
+http://127.0.0.1:8787
+```
+
 ## Ask
 
 ```powershell
@@ -85,6 +91,8 @@ Available modes:
 Simple date/time questions such as "today's date" or "오늘 날짜" are answered directly from the local runtime clock instead of using search or the model.
 
 Every response includes `mode_profile`, `validation`, `knowledge_prior`, timings, citations, sources, warnings, cache hit metadata, `fetcher_counts`, `search_traces`, and `provider_health`.
+
+The web UI uses `/ask/stream` to show progress states, source links, and provider health while answers are generated.
 
 ## Benchmark
 
@@ -121,6 +129,7 @@ V2 adds:
 - `cache_hits` response metadata.
 - Provider health telemetry for search providers.
 - Direct local date/time answers.
+- Browser UI with progress, clickable sources, and provider health.
 - Safer failure when reasoning models return empty final content.
 - `fast`, `balanced`, and `deep` mode profiles.
 - Knowledge priors for stable architecture guidance.
