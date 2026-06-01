@@ -1,0 +1,2 @@
+"""Local realtime search prototype."""
+

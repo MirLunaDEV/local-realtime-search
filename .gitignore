@@ -1,0 +1,11 @@
+.env
+.venv/
+.cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+.api*.log
+.api*.err
+.benchmark*.log
+.benchmark*.err
+benchmark-results/

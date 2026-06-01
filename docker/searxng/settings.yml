@@ -1,0 +1,17 @@
+use_default_settings: true
+
+general:
+  instance_name: "local-realtime-search"
+
+search:
+  formats:
+    - html
+    - json
+
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+  secret_key: "local-realtime-search-dev-key"
+  limiter: false
+  public_instance: false
+
