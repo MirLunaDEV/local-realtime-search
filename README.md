@@ -33,6 +33,7 @@ Important variables:
 
 - `LM_STUDIO_BASE_URL`: default `http://127.0.0.1:1234/v1`
 - `LM_STUDIO_MODEL`: model name loaded in LM Studio
+- `LOCAL_TIMEZONE`: timezone for direct date/time answers
 - `SEARXNG_BASE_URL`: your SearXNG base URL
 - `CACHE_PATH`: SQLite cache path
 - `FETCHER`: `auto`, `http`, or `crawl4ai`
@@ -81,6 +82,8 @@ Available modes:
 | `balanced` | More complete answers | 16 fetches, 20 evidence chunks, 24k evidence chars, 4096 generation tokens, 180s synthesis timeout |
 | `deep` | Slow, broader evidence gathering | 24+ fetches, 40+ evidence chunks, 50k evidence chars, 8192 generation tokens, 420s synthesis timeout |
 
+Simple date/time questions such as "today's date" or "오늘 날짜" are answered directly from the local runtime clock instead of using search or the model.
+
 Every response includes `mode_profile`, `validation`, `knowledge_prior`, timings, citations, sources, warnings, cache hit metadata, `fetcher_counts`, `search_traces`, and `provider_health`.
 
 ## Benchmark
@@ -117,6 +120,7 @@ V2 adds:
 - SQLite search/page cache.
 - `cache_hits` response metadata.
 - Provider health telemetry for search providers.
+- Direct local date/time answers.
 - Safer failure when reasoning models return empty final content.
 - `fast`, `balanced`, and `deep` mode profiles.
 - Knowledge priors for stable architecture guidance.

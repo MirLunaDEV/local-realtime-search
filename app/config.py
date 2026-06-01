@@ -29,6 +29,7 @@ class Settings:
     lm_studio_base_url: str = os.getenv("LM_STUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
     lm_studio_api_key: str = os.getenv("LM_STUDIO_API_KEY", "lm-studio")
     lm_studio_model: str = os.getenv("LM_STUDIO_MODEL", "your-loaded-lm-studio-model-id")
+    local_timezone: str = os.getenv("LOCAL_TIMEZONE", "Asia/Seoul")
     searxng_base_url: str = os.getenv("SEARXNG_BASE_URL", "http://127.0.0.1:8080")
     cache_path: str = os.getenv("CACHE_PATH", ".cache/local-realtime-search.sqlite3")
     search_cache_ttl_seconds: int = _int_env("SEARCH_CACHE_TTL_SECONDS", 900)

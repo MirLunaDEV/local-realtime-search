@@ -7,6 +7,7 @@ from dataclasses import asdict
 from app.answer_cleanup import cleanup_answer_for_prior
 from app.cache import SearchCache
 from app.config import Settings
+from app.direct_answers import maybe_direct_answer
 from app.evidence import EvidenceChunk, evidence_from_page, evidence_from_snippet, select_evidence
 from app.fetch.fetcher import fetch_page_best_effort
 from app.fetch.http_fetcher import FetchedPage
@@ -130,6 +131,40 @@ async def answer_question(question: str, *, mode: str, freshness: str | None, se
     cache_hits = {"search": 0, "page": 0}
     fetcher_counts: dict[str, int] = {}
     profile = get_mode_profile(mode, settings)
+
+    direct_answer = maybe_direct_answer(question, settings.local_timezone)
+    if direct_answer is not None:
+        elapsed_ms = int((time.perf_counter() - started) * 1000)
+        return {
+            "answer": direct_answer.answer,
+            "queries": [],
+            "citations": [],
+            "sources": [],
+            "timings_ms": {
+                "planning": elapsed_ms,
+                "search": 0,
+                "fetch": 0,
+                "synthesis": 0,
+                "total": elapsed_ms,
+            },
+            "cache_hits": cache_hits,
+            "fetcher_counts": fetcher_counts,
+            "search_traces": [],
+            "provider_health": [],
+            "confidence": "high",
+            "warnings": [],
+            "validation": {
+                "ok": True,
+                "issues": [],
+                "cited_ids": [],
+                "missing_citation_ids": [],
+            },
+            "mode": profile.effective_mode,
+            "requested_mode": profile.requested_mode,
+            "mode_profile": asdict(profile),
+            "model": settings.lm_studio_model,
+            "knowledge_prior": {"label": direct_answer.label, "text": "Answered directly from the local runtime clock."},
+        }
 
     queries = plan_queries(question, max_queries=profile.max_query_variants, freshness=freshness)
     prior = get_knowledge_prior(question)
