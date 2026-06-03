@@ -23,6 +23,13 @@ def test_classify_crawl4ai_repo_as_primary() -> None:
     assert policy.score_bonus >= 8.0
 
 
+def test_classify_wttr_as_weather_provider() -> None:
+    policy = classify_source("https://wttr.in/Seoul?format=j1")
+
+    assert policy.label == "weather_provider"
+    assert policy.is_primary
+
+
 def test_source_warning_for_weak_source() -> None:
     assert source_warning("https://www.instagram.com/p/example") is not None
 

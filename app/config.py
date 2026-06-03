@@ -39,6 +39,7 @@ class Settings:
     lm_studio_finalizer_max_tokens: int = _int_env("LM_STUDIO_FINALIZER_MAX_TOKENS", 2048)
     lm_studio_retry_on_empty_content: bool = os.getenv("LM_STUDIO_RETRY_ON_EMPTY_CONTENT", "true").lower() == "true"
     search_timeout_seconds: float = _float_env("SEARCH_TIMEOUT_SECONDS", 2.5)
+    weather_timeout_seconds: float = _float_env("WEATHER_TIMEOUT_SECONDS", 2.5)
     fetch_timeout_seconds: float = _float_env("FETCH_TIMEOUT_SECONDS", 3.0)
     crawl4ai_timeout_seconds: float = _float_env("CRAWL4AI_TIMEOUT_SECONDS", 8.0)
     synthesis_timeout_seconds: float = _float_env("SYNTHESIS_TIMEOUT_SECONDS", 180.0)

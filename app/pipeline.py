@@ -26,6 +26,7 @@ from app.search.searxng import SearxngProvider
 from app.search_backend_health import status_from_provider_health
 from app.source_policy import source_warning
 from app.validator import validate_answer
+from app.weather import WeatherEvidence, WeatherProviderStatus, collect_weather_evidence
 
 
 FRESHNESS_MAP = {
@@ -115,8 +116,12 @@ def _warnings(
     searched_count: int,
     fetched_count: int,
     search_backend_status: dict[str, object] | None = None,
+    weather_provider_status: dict[str, object] | None = None,
 ) -> list[str]:
     warnings: list[str] = []
+    if weather_provider_status and weather_provider_status.get("status") in {"down", "skipped"}:
+        detail = weather_provider_status.get("error")
+        warnings.append(f"Weather provider is {weather_provider_status.get('status')}: {detail}")
     if search_backend_status and search_backend_status.get("status") in {"down", "empty"}:
         status = search_backend_status.get("status")
         base_url = search_backend_status.get("base_url")
@@ -172,6 +177,13 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
                 "result_count": 0,
                 "error": "Direct answer did not need web search.",
             },
+            "weather_provider_status": {
+                "provider": "wttr_in",
+                "status": "not_used",
+                "location": None,
+                "elapsed_ms": 0,
+                "error": "Direct answer did not need weather.",
+            },
             "confidence": "high",
             "warnings": [],
             "validation": {
@@ -193,6 +205,56 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
     queries = plan_queries(question, max_queries=profile.max_query_variants, freshness=effective_freshness)
     prior = get_knowledge_prior(question)
     marks["planning"] = int((time.perf_counter() - started) * 1000)
+
+    weather_result = await collect_weather_evidence(question, timeout_seconds=settings.weather_timeout_seconds)
+    if isinstance(weather_result, WeatherEvidence):
+        elapsed_ms = int((time.perf_counter() - started) * 1000)
+        weather_provider_status = weather_result.status.to_dict()
+        search_backend_status = {
+            "provider": "searxng",
+            "status": "not_used",
+            "base_url": settings.searxng_base_url,
+            "elapsed_ms": 0,
+            "result_count": 0,
+            "error": "Weather provider answered this request before web search.",
+        }
+        source = asdict(weather_result.source) | {
+            "canonical_url": weather_result.source.url,
+            "score": 50.0,
+            "source_label": "weather_provider",
+        }
+        return {
+            "direct_answer": None,
+            "queries": queries,
+            "citations": [asdict(weather_result.evidence)],
+            "sources": [source],
+            "timings_ms": {
+                "planning": marks["planning"],
+                "search": weather_result.status.elapsed_ms,
+                "fetch": 0,
+                "synthesis": 0,
+                "total": elapsed_ms,
+            },
+            "cache_hits": cache_hits,
+            "fetcher_counts": fetcher_counts,
+            "search_traces": [],
+            "provider_health": [],
+            "search_backend_status": search_backend_status,
+            "weather_provider_status": weather_provider_status,
+            "confidence": "high",
+            "warnings": [],
+            "mode": profile.effective_mode,
+            "requested_mode": profile.requested_mode,
+            "freshness": effective_freshness,
+            "requested_freshness": freshness,
+            "mode_profile": asdict(profile),
+            "model": settings.lm_studio_model,
+            "knowledge_prior": asdict(prior) if prior else None,
+            "_evidence_chunks": [weather_result.evidence],
+        }
+    weather_provider_status = (
+        weather_result.to_dict() if isinstance(weather_result, WeatherProviderStatus) else {"status": "unknown"}
+    )
 
     search_providers = [
         OfficialHintsProvider(),
@@ -278,8 +340,15 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         "search_traces": [asdict(trace) for trace in search_traces],
         "provider_health": provider_health,
         "search_backend_status": search_backend_status,
+        "weather_provider_status": weather_provider_status,
         "confidence": "medium" if fetched_count >= 3 else "low",
-        "warnings": _warnings(evidence, len(search_results), fetched_count, search_backend_status),
+        "warnings": _warnings(
+            evidence,
+            len(search_results),
+            fetched_count,
+            search_backend_status,
+            weather_provider_status,
+        ),
         "mode": profile.effective_mode,
         "requested_mode": profile.requested_mode,
         "freshness": effective_freshness,

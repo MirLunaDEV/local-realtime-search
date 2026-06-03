@@ -32,6 +32,7 @@ Use it for:
 - SearXNG Docker search backend, optional but recommended
 - DuckDuckGo HTML fallback when SearXNG is unavailable
 - Direct local date/time answers without model/search calls
+- Conditional wttr.in weather provider for weather questions
 - Automatic freshness inference for today/latest/weather-style questions
 - SQLite search/page cache
 - Clickable sources and citation IDs
@@ -152,6 +153,8 @@ Responses also include `search_backend_status`. If SearXNG is down or returning 
 SearXNG search backend is down at http://127.0.0.1:8080; using fallback sources only.
 ```
 
+Weather questions use a short `wttr.in` lookup before broad web search. Non-weather questions do not call the weather provider, so this does not add startup latency to normal prompts.
+
 ## Example Prompts
 
 ```text
@@ -180,6 +183,7 @@ Important variables:
 - `SEARXNG_BASE_URL`: default `http://127.0.0.1:8080`
 - `CACHE_PATH`: SQLite cache path
 - `FETCHER`: `auto`, `http`, or `crawl4ai`
+- `WEATHER_TIMEOUT_SECONDS`: timeout for conditional wttr.in weather lookups
 - `LM_STUDIO_MAX_TOKENS`: max generation tokens for answer synthesis
 
 Optional Crawl4AI extraction:

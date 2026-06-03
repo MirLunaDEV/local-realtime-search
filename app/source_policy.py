@@ -41,6 +41,8 @@ def classify_source(url: str, title: str = "") -> SourcePolicy:
     path = parts.path.lower()
     lowered_title = title.lower()
 
+    if host.endswith("wttr.in"):
+        return SourcePolicy("weather_provider", 6.0, is_primary=True)
     if host in OFFICIAL_HOSTS:
         return SourcePolicy("official", 8.0, is_primary=True)
     if host.endswith(".gov") or host.endswith(".go.kr"):

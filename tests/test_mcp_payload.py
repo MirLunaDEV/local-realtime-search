@@ -9,11 +9,13 @@ def test_mcp_payload_keeps_direct_answer_and_instruction() -> None:
             "sources": [],
             "mode": "fast",
             "requested_mode": "fast",
+            "weather_provider_status": {"status": "not_used"},
         }
     )
 
     assert payload["answer_direct"] == "Today is 2026-06-02 in Asia/Seoul."
     assert "answer_direct" in payload["instruction_to_model"]
+    assert payload["weather_provider_status"]["status"] == "not_used"
 
 
 def test_mcp_payload_compacts_sources_and_citations() -> None:
