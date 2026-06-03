@@ -11,13 +11,14 @@ from app.direct_answers import maybe_direct_answer
 from app.evidence import EvidenceChunk, evidence_from_page, evidence_from_snippet, select_evidence
 from app.fetch.fetcher import fetch_page_best_effort
 from app.fetch.http_fetcher import FetchedPage
+from app.freshness import infer_freshness
 from app.knowledge_prior import get_knowledge_prior
 from app.lmstudio import EmptyFinalContentError, LmStudioClient
 from app.modes import get_mode_profile
 from app.planner import plan_queries
 from app.prompts import build_answer_messages, build_finalizer_messages
 from app.provider_health import SearchTrace, summarize_search_traces
-from app.ranking import rank_results
+from app.ranking import rank_results, select_diverse_results
 from app.search.base import SearchResult
 from app.search.duckduckgo import DuckDuckGoHtmlProvider
 from app.search.official_hints import OfficialHintsProvider
@@ -50,7 +51,7 @@ async def _safe_search(
     provider_name = str(getattr(provider, "name", provider.__class__.__name__))
     key = _search_cache_key(provider, query, freshness)
     cached = cache.get_search(key, ttl_seconds)
-    if cached is not None:
+    if cached:
         return cached, SearchTrace(
             provider=provider_name,
             query=query,
@@ -61,7 +62,8 @@ async def _safe_search(
         )
     try:
         results = await provider.search(query, freshness=FRESHNESS_MAP.get(freshness or ""), limit=10)
-        cache.set_search(key, results)
+        if results:
+            cache.set_search(key, results)
         return results, SearchTrace(
             provider=provider_name,
             query=query,
@@ -131,6 +133,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
     cache_hits = {"search": 0, "page": 0}
     fetcher_counts: dict[str, int] = {}
     profile = get_mode_profile(mode, settings)
+    effective_freshness = infer_freshness(question, freshness)
 
     direct_answer = maybe_direct_answer(question, settings.local_timezone)
     if direct_answer is not None:
@@ -161,13 +164,15 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
             },
             "mode": profile.effective_mode,
             "requested_mode": profile.requested_mode,
+            "freshness": effective_freshness,
+            "requested_freshness": freshness,
             "mode_profile": asdict(profile),
             "model": settings.lm_studio_model,
             "knowledge_prior": {"label": direct_answer.label, "text": "Answered directly from the local runtime clock."},
             "_evidence_chunks": [],
         }
 
-    queries = plan_queries(question, max_queries=profile.max_query_variants, freshness=freshness)
+    queries = plan_queries(question, max_queries=profile.max_query_variants, freshness=effective_freshness)
     prior = get_knowledge_prior(question)
     marks["planning"] = int((time.perf_counter() - started) * 1000)
 
@@ -177,7 +182,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         DuckDuckGoHtmlProvider(timeout_seconds=profile.search_timeout_seconds),
     ]
     search_tasks = [
-        _safe_search(provider, query, freshness, cache, settings.search_cache_ttl_seconds)
+        _safe_search(provider, query, effective_freshness, cache, settings.search_cache_ttl_seconds)
         for provider in search_providers
         for query in queries
     ]
@@ -192,7 +197,8 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
     marks["search"] = int((time.perf_counter() - started) * 1000)
 
     ranked = rank_results(search_results, question, limit=profile.max_candidate_urls)
-    fetch_targets = [item.result for item in ranked[: profile.max_fetch_urls]]
+    selected_for_fetch = select_diverse_results(ranked, profile.max_fetch_urls)
+    fetch_targets = [item.result for item in selected_for_fetch]
 
     fetch_pairs = await asyncio.gather(
         *[
@@ -254,6 +260,8 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         "warnings": _warnings(evidence, len(search_results), fetched_count),
         "mode": profile.effective_mode,
         "requested_mode": profile.requested_mode,
+        "freshness": effective_freshness,
+        "requested_freshness": freshness,
         "mode_profile": asdict(profile),
         "model": settings.lm_studio_model,
         "knowledge_prior": asdict(prior) if prior else None,

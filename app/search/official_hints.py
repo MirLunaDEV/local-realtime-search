@@ -9,6 +9,31 @@ class OfficialHintsProvider:
     async def search(self, query: str, *, freshness: str | None = None, limit: int = 10) -> list[SearchResult]:
         lowered = query.lower()
         results: list[SearchResult] = []
+        if "lm studio" in lowered and "mcp" in lowered:
+            results.extend(
+                [
+                    SearchResult(
+                        title="MCP Servers | LM Studio Docs",
+                        url="https://lmstudio.ai/docs/app/plugins/mcp",
+                        snippet=(
+                            "LM Studio documents MCP server setup from the app UI, including configuring "
+                            "mcp.json so local models can use external tools."
+                        ),
+                        provider=self.name,
+                        rank=1,
+                    ),
+                    SearchResult(
+                        title="MCP in the API | LM Studio Developer Docs",
+                        url="https://lmstudio.ai/docs/developer/core/mcp",
+                        snippet=(
+                            "LM Studio developer docs describe MCP support in API workflows, allowing "
+                            "clients to connect model calls with MCP tools."
+                        ),
+                        provider=self.name,
+                        rank=2,
+                    ),
+                ]
+            )
         if "lm studio" in lowered and "tool" in lowered:
             results.extend(
                 [

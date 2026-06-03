@@ -32,8 +32,10 @@ Use it for:
 - SearXNG Docker search backend, optional but recommended
 - DuckDuckGo HTML fallback when SearXNG is unavailable
 - Direct local date/time answers without model/search calls
+- Automatic freshness inference for today/latest/weather-style questions
 - SQLite search/page cache
 - Clickable sources and citation IDs
+- Host-diverse result fetching to avoid one site crowding out other sources
 - Provider health telemetry and weak-source warnings
 - Explicit LM Studio model selection with no hidden fallback
 - Safer handling for reasoning models that return empty final content
@@ -191,7 +193,7 @@ The benchmark records latency, citation count, expected-domain hits, warnings, a
 1. Plan search query variants.
 2. Query official hints, SearXNG, and DuckDuckGo fallback in parallel.
 3. Deduplicate and rank candidate URLs.
-4. Fetch top pages with strict timeouts.
+4. Select a host-diverse fetch set with strict timeouts.
 5. Extract compact evidence chunks.
 6. Return citation-ready context to LM Studio or synthesize through the API/UI path.
 

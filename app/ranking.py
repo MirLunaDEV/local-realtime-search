@@ -124,3 +124,32 @@ def rank_results(results: list[SearchResult], question: str, limit: int = 24) ->
             best_by_url[canonical_url] = ranked
 
     return sorted(best_by_url.values(), key=lambda item: item.score, reverse=True)[:limit]
+
+
+def select_diverse_results(
+    ranked: list[RankedResult],
+    limit: int,
+    *,
+    max_per_host: int = 2,
+) -> list[RankedResult]:
+    selected: list[RankedResult] = []
+    host_counts: dict[str, int] = {}
+
+    for item in ranked:
+        host = urlsplit(item.canonical_url).netloc
+        if host_counts.get(host, 0) >= max_per_host:
+            continue
+        selected.append(item)
+        host_counts[host] = host_counts.get(host, 0) + 1
+        if len(selected) >= limit:
+            return selected
+
+    selected_urls = {item.canonical_url for item in selected}
+    for item in ranked:
+        if item.canonical_url in selected_urls:
+            continue
+        selected.append(item)
+        if len(selected) >= limit:
+            return selected
+
+    return selected

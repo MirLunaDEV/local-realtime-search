@@ -58,3 +58,4 @@ def test_mcp_payload_compacts_sources_and_citations() -> None:
     ]
     assert payload["sources"][0]["url"] == "https://example.com/docs"
     assert "canonical_url" not in payload["sources"][0]
+    assert payload["source_summary"]["source_label_counts"] == {"official docs": 1}

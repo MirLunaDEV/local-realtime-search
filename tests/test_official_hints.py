@@ -12,6 +12,14 @@ async def test_official_hints_adds_lm_studio_tool_docs() -> None:
 
 
 @pytest.mark.anyio
+async def test_official_hints_adds_lm_studio_mcp_docs() -> None:
+    results = await OfficialHintsProvider().search("latest LM Studio MCP changes")
+
+    assert results
+    assert results[0].url == "https://lmstudio.ai/docs/app/plugins/mcp"
+
+
+@pytest.mark.anyio
 async def test_official_hints_adds_local_search_stack_sources() -> None:
     results = await OfficialHintsProvider().search("free local search stack with LM Studio")
     urls = {result.url for result in results}

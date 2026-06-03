@@ -2,14 +2,24 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
+from urllib.parse import urlsplit
+
+
+def _trim(value: object, limit: int) -> str | None:
+    if value is None:
+        return None
+    text = " ".join(str(value).split())
+    if len(text) <= limit:
+        return text
+    return f"{text[: limit - 1].rstrip()}..."
 
 
 def _compact_citation(citation: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "id": citation.get("id"),
-        "title": citation.get("title"),
+        "title": _trim(citation.get("title"), 180),
         "url": citation.get("url"),
-        "text": citation.get("text"),
+        "text": _trim(citation.get("text"), 1200),
         "provider": citation.get("provider"),
         "published_or_updated": citation.get("published_or_updated"),
         "source_type": citation.get("source_type"),
@@ -18,13 +28,29 @@ def _compact_citation(citation: Mapping[str, Any]) -> dict[str, Any]:
 
 def _compact_source(source: Mapping[str, Any]) -> dict[str, Any]:
     return {
-        "title": source.get("title"),
+        "title": _trim(source.get("title"), 180),
         "url": source.get("url"),
-        "snippet": source.get("snippet"),
+        "snippet": _trim(source.get("snippet"), 360),
         "provider": source.get("provider"),
         "published_or_updated": source.get("published_or_updated"),
         "source_label": source.get("source_label"),
         "score": source.get("score"),
+    }
+
+
+def _source_summary(sources: list[dict[str, Any]]) -> dict[str, Any]:
+    labels: dict[str, int] = {}
+    hosts: dict[str, int] = {}
+    for source in sources:
+        label = str(source.get("source_label") or "unknown")
+        labels[label] = labels.get(label, 0) + 1
+        url = str(source.get("url") or "")
+        host = urlsplit(url).netloc
+        if host:
+            hosts[host] = hosts.get(host, 0) + 1
+    return {
+        "source_label_counts": labels,
+        "top_hosts": dict(sorted(hosts.items(), key=lambda item: item[1], reverse=True)[:8]),
     }
 
 
@@ -57,9 +83,12 @@ def format_mcp_research_payload(
         ),
         "mode": context.get("mode"),
         "requested_mode": context.get("requested_mode"),
+        "freshness": context.get("freshness"),
+        "requested_freshness": context.get("requested_freshness"),
         "queries": context.get("queries", []),
         "citations": citations,
         "sources": sources,
+        "source_summary": _source_summary(sources),
         "provider_health": context.get("provider_health", []),
         "warnings": context.get("warnings", []),
         "confidence": context.get("confidence"),
