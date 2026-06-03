@@ -62,6 +62,7 @@ def format_mcp_research_payload(
 ) -> dict[str, Any]:
     """Compress pipeline output into a model-friendly MCP tool result."""
     direct_answer = context.get("direct_answer")
+    answer_strategy = context.get("answer_strategy") if isinstance(context.get("answer_strategy"), Mapping) else {}
     citations = [
         _compact_citation(citation)
         for citation in list(context.get("citations", []))[:max_citations]
@@ -79,8 +80,9 @@ def format_mcp_research_payload(
         "instruction_to_model": (
             "If answer_direct is present, answer directly from it. Otherwise answer using only the "
             "evidence citations below, cite claims with bracket IDs like [1], and mention uncertainty "
-            "when warnings or provider health indicate weak coverage."
+            "when warnings or provider health indicate weak coverage. Follow answer_strategy.guidance when present."
         ),
+        "answer_strategy": answer_strategy,
         "mode": context.get("mode"),
         "requested_mode": context.get("requested_mode"),
         "freshness": context.get("freshness"),

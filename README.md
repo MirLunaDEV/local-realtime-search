@@ -33,6 +33,7 @@ Use it for:
 - DuckDuckGo HTML fallback when SearXNG is unavailable
 - Direct local date/time answers without model/search calls
 - Conditional wttr.in weather provider for weather questions
+- Lightweight answer strategy routing for date, weather, docs, current facts, comparisons, and benchmarks
 - Automatic freshness inference for today/latest/weather-style questions
 - SQLite search/page cache
 - Clickable sources and citation IDs
@@ -154,6 +155,8 @@ SearXNG search backend is down at http://127.0.0.1:8080; using fallback sources 
 ```
 
 Weather questions use a short `wttr.in` lookup before broad web search. Non-weather questions do not call the weather provider, so this does not add startup latency to normal prompts.
+
+Responses also include `answer_strategy`, a fast rule-based routing hint that tells LM Studio whether the answer should behave like a direct answer, weather lookup, docs lookup, current fact check, comparison, benchmark analysis, or general research.
 
 ## Example Prompts
 

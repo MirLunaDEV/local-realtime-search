@@ -5,6 +5,7 @@ import time
 from dataclasses import asdict
 
 from app.answer_cleanup import cleanup_answer_for_prior
+from app.answer_strategy import classify_answer_strategy
 from app.cache import SearchCache
 from app.config import Settings
 from app.direct_answers import maybe_direct_answer
@@ -152,6 +153,11 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
 
     direct_answer = maybe_direct_answer(question, settings.local_timezone)
     if direct_answer is not None:
+        answer_strategy = classify_answer_strategy(
+            question,
+            requested_freshness=freshness,
+            direct_answer_label=direct_answer.label,
+        ).to_dict()
         elapsed_ms = int((time.perf_counter() - started) * 1000)
         return {
             "direct_answer": direct_answer.answer,
@@ -196,6 +202,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
             "requested_mode": profile.requested_mode,
             "freshness": effective_freshness,
             "requested_freshness": freshness,
+            "answer_strategy": answer_strategy,
             "mode_profile": asdict(profile),
             "model": settings.lm_studio_model,
             "knowledge_prior": {"label": direct_answer.label, "text": "Answered directly from the local runtime clock."},
@@ -204,6 +211,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
 
     queries = plan_queries(question, max_queries=profile.max_query_variants, freshness=effective_freshness)
     prior = get_knowledge_prior(question)
+    answer_strategy = classify_answer_strategy(question, requested_freshness=freshness).to_dict()
     marks["planning"] = int((time.perf_counter() - started) * 1000)
 
     weather_result = await collect_weather_evidence(question, timeout_seconds=settings.weather_timeout_seconds)
@@ -247,6 +255,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
             "requested_mode": profile.requested_mode,
             "freshness": effective_freshness,
             "requested_freshness": freshness,
+            "answer_strategy": answer_strategy,
             "mode_profile": asdict(profile),
             "model": settings.lm_studio_model,
             "knowledge_prior": asdict(prior) if prior else None,
@@ -353,6 +362,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         "requested_mode": profile.requested_mode,
         "freshness": effective_freshness,
         "requested_freshness": freshness,
+        "answer_strategy": answer_strategy,
         "mode_profile": asdict(profile),
         "model": settings.lm_studio_model,
         "knowledge_prior": asdict(prior) if prior else None,
