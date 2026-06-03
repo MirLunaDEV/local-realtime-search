@@ -36,6 +36,7 @@ Use it for:
 - SQLite search/page cache
 - Clickable sources and citation IDs
 - Host-diverse result fetching to avoid one site crowding out other sources
+- SearXNG backend health diagnostics in `/health`, API responses, and MCP tool results
 - Provider health telemetry and weak-source warnings
 - Explicit LM Studio model selection with no hidden fallback
 - Safer handling for reasoning models that return empty final content
@@ -62,6 +63,12 @@ Start local search:
 
 ```powershell
 docker compose up -d searxng
+```
+
+On Windows, you can also start Docker Desktop and SearXNG together:
+
+```powershell
+.\scripts\start_search_backend.ps1
 ```
 
 Generate an LM Studio MCP config for your machine:
@@ -112,6 +119,14 @@ http://127.0.0.1:8787
 
 The UI streams progress states, answer text, source links, provider health, warnings, and timings.
 
+Check backend health:
+
+```text
+http://127.0.0.1:8787/health
+```
+
+The health response includes `search_backend.status` so you can tell whether SearXNG is `ok`, `empty`, or `down`.
+
 ## API Usage
 
 ```powershell
@@ -130,6 +145,12 @@ Available modes:
 | `deep` | Slow, broader evidence gathering | 24+ fetches, 40+ evidence chunks, 50k evidence chars, 8192 generation tokens |
 
 Every response includes citations, source URLs, timings, cache hits, provider health, warnings, validation metadata, and mode profile.
+
+Responses also include `search_backend_status`. If SearXNG is down or returning empty results, the API and MCP tool result add a warning such as:
+
+```text
+SearXNG search backend is down at http://127.0.0.1:8080; using fallback sources only.
+```
 
 ## Example Prompts
 
@@ -209,6 +230,12 @@ Start Docker Desktop, then run:
 
 ```powershell
 docker compose up -d searxng
+```
+
+Or use the helper script:
+
+```powershell
+.\scripts\start_search_backend.ps1
 ```
 
 MCP cannot import `app`:

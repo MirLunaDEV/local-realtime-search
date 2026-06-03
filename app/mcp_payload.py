@@ -90,6 +90,7 @@ def format_mcp_research_payload(
         "sources": sources,
         "source_summary": _source_summary(sources),
         "provider_health": context.get("provider_health", []),
+        "search_backend_status": context.get("search_backend_status", {}),
         "warnings": context.get("warnings", []),
         "confidence": context.get("confidence"),
         "timings_ms": context.get("timings_ms", {}),

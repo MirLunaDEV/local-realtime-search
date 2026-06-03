@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.config import get_settings
 from app.pipeline import answer_question
+from app.search_backend_health import check_search_backend
 from app.streaming import stream_answer_events
 
 
@@ -27,8 +28,14 @@ async def index() -> HTMLResponse:
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health() -> dict[str, object]:
+    settings = get_settings()
+    search_backend = await check_search_backend(settings)
+    status = "ok" if search_backend.status == "ok" else "degraded"
+    return {
+        "status": status,
+        "search_backend": search_backend.to_dict(),
+    }
 
 
 @app.post("/ask")

@@ -23,6 +23,7 @@ from app.search.base import SearchResult
 from app.search.duckduckgo import DuckDuckGoHtmlProvider
 from app.search.official_hints import OfficialHintsProvider
 from app.search.searxng import SearxngProvider
+from app.search_backend_health import status_from_provider_health
 from app.source_policy import source_warning
 from app.validator import validate_answer
 
@@ -109,8 +110,17 @@ async def _safe_fetch(
         return result, None, False, "failed"
 
 
-def _warnings(evidence: list[EvidenceChunk], searched_count: int, fetched_count: int) -> list[str]:
+def _warnings(
+    evidence: list[EvidenceChunk],
+    searched_count: int,
+    fetched_count: int,
+    search_backend_status: dict[str, object] | None = None,
+) -> list[str]:
     warnings: list[str] = []
+    if search_backend_status and search_backend_status.get("status") in {"down", "empty"}:
+        status = search_backend_status.get("status")
+        base_url = search_backend_status.get("base_url")
+        warnings.append(f"SearXNG search backend is {status} at {base_url}; using fallback sources only.")
     if not evidence:
         warnings.append("No usable web evidence was collected.")
     elif all(chunk.source_type == "snippet" for chunk in evidence):
@@ -154,6 +164,14 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
             "fetcher_counts": fetcher_counts,
             "search_traces": [],
             "provider_health": [],
+            "search_backend_status": {
+                "provider": "searxng",
+                "status": "not_used",
+                "base_url": settings.searxng_base_url,
+                "elapsed_ms": 0,
+                "result_count": 0,
+                "error": "Direct answer did not need web search.",
+            },
             "confidence": "high",
             "warnings": [],
             "validation": {
@@ -243,6 +261,9 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         "total": marks["fetch"],
     }
 
+    provider_health = summarize_search_traces(search_traces)
+    search_backend_status = status_from_provider_health(provider_health, settings).to_dict()
+
     return {
         "direct_answer": None,
         "queries": queries,
@@ -255,9 +276,10 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         "cache_hits": cache_hits,
         "fetcher_counts": fetcher_counts,
         "search_traces": [asdict(trace) for trace in search_traces],
-        "provider_health": summarize_search_traces(search_traces),
+        "provider_health": provider_health,
+        "search_backend_status": search_backend_status,
         "confidence": "medium" if fetched_count >= 3 else "low",
-        "warnings": _warnings(evidence, len(search_results), fetched_count),
+        "warnings": _warnings(evidence, len(search_results), fetched_count, search_backend_status),
         "mode": profile.effective_mode,
         "requested_mode": profile.requested_mode,
         "freshness": effective_freshness,
