@@ -159,7 +159,7 @@ Available modes:
 
 | Mode | Use case | Default profile |
 |---|---|---|
-| `fast` | Everyday realtime answers | 8 fetches, 8 evidence chunks, 10k evidence chars, 2400 generation tokens |
+| `fast` | Everyday realtime answers | 8 fetches, 8 evidence chunks, 10k evidence chars, 4s+ search timeout, 2400 generation tokens |
 | `balanced` | More complete answers | 16 fetches, 20 evidence chunks, 24k evidence chars, 4096 generation tokens |
 | `deep` | Slow, broader evidence gathering | 24+ fetches, 40+ evidence chunks, 50k evidence chars, 8192 generation tokens |
 | `deepsearch` | Full deep research context for complex questions | 40+ fetches, 72+ evidence chunks, 110k evidence chars, 36 MCP citations, 12k generation tokens |
@@ -210,6 +210,7 @@ Important variables:
 - `RESOLVE_FETCH_HOSTNAMES`: default `true`; resolves hostnames before fetching to catch private-network DNS targets
 - `WEATHER_TIMEOUT_SECONDS`: timeout for conditional wttr.in weather lookups
 - `LM_STUDIO_MAX_TOKENS`: max generation tokens for answer synthesis
+- `SEARCH_TIMEOUT_SECONDS`: default `5.0`; lower values can make free search engines look degraded during slow responses
 
 `/health` also reports config validation warnings/errors, including placeholder model IDs, invalid URLs, invalid fetcher names, unsafe private-network fetch settings, and invalid numeric limits.
 

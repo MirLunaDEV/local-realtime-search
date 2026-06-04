@@ -109,6 +109,8 @@ def test_mcp_payload_returns_terminal_direct_answer_without_citations() -> None:
     )
 
     assert payload["terminal_result"] is True
+    assert payload["citations_empty"] is True
     assert payload["tool_call_policy"]["call_again_for_same_question"] is False
     assert payload["answer_direct"]
     assert "Do not call local_research again" in payload["answer_direct"]
+    assert "Do not provide estimated benchmark scores" in payload["answer_direct"]

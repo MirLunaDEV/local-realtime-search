@@ -32,6 +32,8 @@ def status_from_provider_health(provider_health: list[dict[str, object]], settin
         elapsed_ms = int(item.get("avg_elapsed_ms") or 0)
         if status == "down":
             error = "SearXNG did not respond during the research run."
+        elif status == "degraded":
+            error = "SearXNG responded inconsistently; some search requests failed or timed out during the research run."
         elif status == "empty":
             error = "SearXNG responded but returned no search results."
         else:
@@ -53,7 +55,7 @@ def status_from_provider_health(provider_health: list[dict[str, object]], settin
     )
 
 
-async def check_search_backend(settings: Settings, *, query: str = "health check") -> SearchBackendStatus:
+async def check_search_backend(settings: Settings, *, query: str = "python") -> SearchBackendStatus:
     started = time.perf_counter()
     params = {
         "q": query,
@@ -62,7 +64,7 @@ async def check_search_backend(settings: Settings, *, query: str = "health check
         "safesearch": 0,
     }
     try:
-        async with httpx.AsyncClient(timeout=settings.search_timeout_seconds, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=max(settings.search_timeout_seconds, 8.0), follow_redirects=True) as client:
             response = await client.get(urljoin(settings.searxng_base_url.rstrip("/") + "/", "search"), params=params)
             response.raise_for_status()
             payload = response.json()
@@ -76,11 +78,23 @@ async def check_search_backend(settings: Settings, *, query: str = "health check
         )
 
     result_count = len(payload.get("results", [])) if isinstance(payload, dict) else 0
+    unresponsive = payload.get("unresponsive_engines", []) if isinstance(payload, dict) else []
+    unresponsive_count = len(unresponsive) if isinstance(unresponsive, list) else 0
+    status = "ok" if result_count else "empty"
+    error = None if result_count else "SearXNG returned JSON but no results."
+    if result_count and unresponsive_count:
+        status = "degraded"
+        names = []
+        for item in unresponsive[:5] if isinstance(unresponsive, list) else []:
+            if isinstance(item, list) and item:
+                names.append(str(item[0]))
+        detail = ", ".join(names) if names else f"{unresponsive_count} engine(s)"
+        error = f"SearXNG returned results, but {detail} were unresponsive."
     return SearchBackendStatus(
         provider="searxng",
-        status="ok" if result_count else "empty",
+        status=status,
         base_url=settings.searxng_base_url,
         elapsed_ms=int((time.perf_counter() - started) * 1000),
         result_count=result_count,
-        error=None if result_count else "SearXNG returned JSON but no results.",
+        error=error,
     )

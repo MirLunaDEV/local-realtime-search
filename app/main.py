@@ -34,7 +34,7 @@ async def health() -> dict[str, object]:
     settings = get_settings()
     search_backend = await check_search_backend(settings)
     config = validate_settings(settings)
-    status = "ok" if search_backend.status == "ok" and config["status"] == "ok" else "degraded"
+    status = "ok" if search_backend.status == "ok" and config["status"] != "error" else "degraded"
     return {
         "status": status,
         "search_backend": search_backend.to_dict(),

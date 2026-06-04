@@ -10,6 +10,7 @@ def test_fast_profile_is_smaller_than_balanced() -> None:
     assert fast.effective_mode == "fast"
     assert fast.max_evidence_chars < balanced.max_evidence_chars
     assert fast.lm_studio_max_tokens < balanced.lm_studio_max_tokens
+    assert fast.search_timeout_seconds >= 4.0
 
 
 def test_deep_profile_is_larger_than_balanced() -> None:

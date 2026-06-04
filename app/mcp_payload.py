@@ -91,9 +91,10 @@ def format_mcp_research_payload(
     no_evidence = direct_answer is None and not citations
     if no_evidence:
         direct_answer = (
-            "I could not collect usable web evidence for this request. Do not call local_research again for the same "
-            "question in this turn; answer the user that the local search backend returned no usable cited evidence, "
-            "mention the warnings/provider status, and suggest retrying with SearXNG healthy or a narrower query."
+            "I could not collect usable cited web evidence for this request. Do not call local_research again for the "
+            "same question in this turn. Do not provide estimated benchmark scores, guessed community reviews, fake "
+            "tables, or uncited claims. Tell the user that local evidence collection failed, mention the warnings/"
+            "provider status, and suggest retrying after SearXNG is healthy or using a narrower query."
         )
 
     return {
@@ -108,6 +109,7 @@ def format_mcp_research_payload(
             "this tool result; if citations are empty, report the failed evidence collection instead."
         ),
         "terminal_result": True,
+        "citations_empty": not citations,
         "tool_call_policy": {
             "call_again_for_same_question": False,
             "reason": "This MCP result is terminal for the current user question, even when citations are empty.",
