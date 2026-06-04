@@ -74,6 +74,20 @@ On Windows, you can also start Docker Desktop and SearXNG together:
 .\scripts\start_search_backend.ps1
 ```
 
+To run SearXNG plus the optional browser UI/API in Docker:
+
+```powershell
+Copy-Item .env.example .env
+# Edit LM_STUDIO_MODEL in .env to match your loaded LM Studio model ID.
+docker compose --profile api up -d --build
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8787
+```
+
 Generate an LM Studio MCP config for your machine:
 
 ```powershell
@@ -129,6 +143,8 @@ http://127.0.0.1:8787/health
 ```
 
 The health response includes `search_backend.status` so you can tell whether SearXNG is `ok`, `empty`, or `down`.
+
+Docker instructions: [`docs/docker.md`](docs/docker.md).
 
 ## API Usage
 
@@ -289,6 +305,7 @@ LM Studio shows no tool:
 
 - Demo prompts: [`examples/prompts.md`](examples/prompts.md)
 - Launch checklist: [`docs/launch-checklist.md`](docs/launch-checklist.md)
+- Docker guide: [`docs/docker.md`](docs/docker.md)
 - MCP config template: [`mcp/lmstudio.mcp.json`](mcp/lmstudio.mcp.json)
 
 ## License

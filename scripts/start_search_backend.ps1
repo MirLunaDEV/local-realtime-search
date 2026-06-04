@@ -1,3 +1,7 @@
+param(
+    [switch]$Api
+)
+
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
@@ -31,17 +35,46 @@ if ((Get-Date) -ge $deadline) {
     Write-Error "Docker engine did not become ready within 2 minutes."
 }
 
-docker compose up -d searxng
+if ($Api) {
+    docker compose --profile api up -d searxng api
+} else {
+    docker compose up -d searxng
+}
 
 $healthDeadline = (Get-Date).AddMinutes(1)
+$searxngReady = $false
 do {
     try {
         $response = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8080/search?q=health%20check&format=json" -TimeoutSec 15
         Write-Host "SearXNG health check HTTP status: $($response.StatusCode)"
-        exit 0
+        $searxngReady = $true
+        break
     } catch {
         Start-Sleep -Seconds 5
     }
 } while ((Get-Date) -lt $healthDeadline)
 
-Write-Error "SearXNG container started, but the HTTP health check did not pass within 1 minute."
+if (-not $searxngReady) {
+    Write-Error "SearXNG container started, but the HTTP health check did not pass within 1 minute."
+}
+
+if ($Api) {
+    $apiHealthDeadline = (Get-Date).AddMinutes(1)
+    $apiReady = $false
+    do {
+        try {
+            $response = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8787/health" -TimeoutSec 15
+            Write-Host "API health check HTTP status: $($response.StatusCode)"
+            $apiReady = $true
+            break
+        } catch {
+            Start-Sleep -Seconds 5
+        }
+    } while ((Get-Date) -lt $apiHealthDeadline)
+
+    if (-not $apiReady) {
+        Write-Error "API container started, but the HTTP health check did not pass within 1 minute."
+    }
+}
+
+exit 0

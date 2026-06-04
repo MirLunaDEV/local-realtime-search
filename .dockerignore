@@ -1,0 +1,12 @@
+.cache
+.git
+.pytest_cache
+.ruff_cache
+.venv
+__pycache__
+benchmark-results
+*.pyc
+*.pyo
+*.sqlite3
+*.log
+*.err

@@ -1,4 +1,45 @@
 services:
+  api:
+    build:
+      context: .
+    image: local-realtime-search:latest
+    pull_policy: build
+    container_name: local-realtime-search-api
+    profiles:
+      - api
+    ports:
+      - "8787:8787"
+    depends_on:
+      searxng:
+        condition: service_healthy
+    volumes:
+      - local-realtime-cache:/data
+    environment:
+      - LM_STUDIO_BASE_URL=${DOCKER_LM_STUDIO_BASE_URL:-http://host.docker.internal:1234/v1}
+      - LM_STUDIO_API_KEY=${LM_STUDIO_API_KEY:-lm-studio}
+      - LM_STUDIO_MODEL=${LM_STUDIO_MODEL:-your-loaded-lm-studio-model-id}
+      - LOCAL_TIMEZONE=${LOCAL_TIMEZONE:-Asia/Seoul}
+      - SEARXNG_BASE_URL=http://searxng:8080
+      - CACHE_PATH=/data/local-realtime-search.sqlite3
+      - FETCHER=${FETCHER:-auto}
+      - ALLOW_PRIVATE_NETWORK_FETCH=${ALLOW_PRIVATE_NETWORK_FETCH:-false}
+      - RESOLVE_FETCH_HOSTNAMES=${RESOLVE_FETCH_HOSTNAMES:-true}
+      - LM_STUDIO_MAX_TOKENS=${LM_STUDIO_MAX_TOKENS:-4096}
+      - SYNTHESIS_TIMEOUT_SECONDS=${SYNTHESIS_TIMEOUT_SECONDS:-180}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=5).read()"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
   searxng:
     image: searxng/searxng:latest
     container_name: local-realtime-searxng
@@ -8,5 +49,17 @@ services:
       - ./docker/searxng:/etc/searxng:ro
     environment:
       - SEARXNG_BASE_URL=http://127.0.0.1:8080/
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/search?q=health%20check&format=json', timeout=5).read()"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
+volumes:
+  local-realtime-cache:
