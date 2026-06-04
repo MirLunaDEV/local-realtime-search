@@ -25,6 +25,7 @@ from app.search.duckduckgo import DuckDuckGoHtmlProvider
 from app.search.official_hints import OfficialHintsProvider
 from app.search.searxng import SearxngProvider
 from app.search_backend_health import status_from_provider_health
+from app.security import UnsafeUrlError, ensure_url_safe_for_fetch
 from app.source_policy import source_warning
 from app.validator import validate_answer
 from app.weather import WeatherEvidence, WeatherProviderStatus, collect_weather_evidence
@@ -95,7 +96,18 @@ async def _safe_fetch(
     ttl_seconds: int,
     fetcher: str,
     crawl4ai_timeout_seconds: float,
+    allow_private_network_fetch: bool,
+    resolve_fetch_hostnames: bool,
 ) -> tuple[SearchResult, FetchedPage | None, bool, str]:
+    try:
+        ensure_url_safe_for_fetch(
+            result.url,
+            allow_private_network=allow_private_network_fetch,
+            resolve_hostnames=resolve_fetch_hostnames,
+        )
+    except UnsafeUrlError:
+        return result, None, False, "blocked_url"
+
     cached = cache.get_page(result.url, ttl_seconds)
     if cached is not None:
         return result, cached, True, "cache"
@@ -105,9 +117,14 @@ async def _safe_fetch(
             fetcher=fetcher,
             http_timeout_seconds=timeout_seconds,
             crawl4ai_timeout_seconds=crawl4ai_timeout_seconds,
+            allow_private_network=allow_private_network_fetch,
+            resolve_hostnames=resolve_fetch_hostnames,
+            skip_url_safety_check=True,
         )
         cache.set_page(result.url, page)
         return result, page, False, used_fetcher
+    except UnsafeUrlError:
+        return result, None, False, "blocked_url"
     except Exception:
         return result, None, False, "failed"
 
@@ -118,8 +135,12 @@ def _warnings(
     fetched_count: int,
     search_backend_status: dict[str, object] | None = None,
     weather_provider_status: dict[str, object] | None = None,
+    fetcher_counts: dict[str, int] | None = None,
 ) -> list[str]:
     warnings: list[str] = []
+    blocked_count = (fetcher_counts or {}).get("blocked_url", 0)
+    if blocked_count:
+        warnings.append(f"Blocked {blocked_count} unsafe URL(s) before fetching.")
     if weather_provider_status and weather_provider_status.get("status") in {"down", "skipped"}:
         detail = weather_provider_status.get("error")
         warnings.append(f"Weather provider is {weather_provider_status.get('status')}: {detail}")
@@ -298,6 +319,8 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
                 settings.page_cache_ttl_seconds,
                 settings.fetcher,
                 settings.crawl4ai_timeout_seconds,
+                settings.allow_private_network_fetch,
+                settings.resolve_fetch_hostnames,
             )
             for result in fetch_targets
         ]
@@ -310,6 +333,8 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         if cache_hit:
             cache_hits["page"] += 1
         if page is None:
+            if used_fetcher == "blocked_url":
+                continue
             snippet = evidence_from_snippet(source, next_id)
             if snippet:
                 evidence.append(snippet)
@@ -357,6 +382,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
             fetched_count,
             search_backend_status,
             weather_provider_status,
+            fetcher_counts,
         ),
         "mode": profile.effective_mode,
         "requested_mode": profile.requested_mode,

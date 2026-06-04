@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.fetch.crawl4ai_fetcher import fetch_page_with_crawl4ai
 from app.fetch.http_fetcher import FetchedPage, fetch_page
+from app.security import ensure_url_safe_for_fetch
 
 
 def _looks_low_quality(page: FetchedPage) -> bool:
@@ -18,7 +19,16 @@ async def fetch_page_best_effort(
     fetcher: str = "auto",
     http_timeout_seconds: float = 3.0,
     crawl4ai_timeout_seconds: float = 8.0,
+    allow_private_network: bool = False,
+    resolve_hostnames: bool = True,
+    skip_url_safety_check: bool = False,
 ) -> tuple[FetchedPage, str]:
+    if not skip_url_safety_check:
+        ensure_url_safe_for_fetch(
+            url,
+            allow_private_network=allow_private_network,
+            resolve_hostnames=resolve_hostnames,
+        )
     selected = fetcher.lower().strip()
 
     if selected == "http":
@@ -44,4 +54,3 @@ async def fetch_page_best_effort(
         if http_error is not None:
             raise http_error
         raise
-

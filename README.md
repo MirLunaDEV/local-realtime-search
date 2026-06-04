@@ -39,6 +39,7 @@ Use it for:
 - Clickable sources and citation IDs
 - Host-diverse result fetching to avoid one site crowding out other sources
 - SearXNG backend health diagnostics in `/health`, API responses, and MCP tool results
+- SSRF-style URL safety guard for page fetching
 - Provider health telemetry and weak-source warnings
 - Explicit LM Studio model selection with no hidden fallback
 - Safer handling for reasoning models that return empty final content
@@ -186,6 +187,8 @@ Important variables:
 - `SEARXNG_BASE_URL`: default `http://127.0.0.1:8080`
 - `CACHE_PATH`: SQLite cache path
 - `FETCHER`: `auto`, `http`, or `crawl4ai`
+- `ALLOW_PRIVATE_NETWORK_FETCH`: default `false`; blocks page fetches to localhost/private/internal IP ranges
+- `RESOLVE_FETCH_HOSTNAMES`: default `true`; resolves hostnames before fetching to catch private-network DNS targets
 - `WEATHER_TIMEOUT_SECONDS`: timeout for conditional wttr.in weather lookups
 - `LM_STUDIO_MAX_TOKENS`: max generation tokens for answer synthesis
 
@@ -196,6 +199,12 @@ uv sync --extra crawl4ai
 ```
 
 Reasoning models may need a large generation budget before they emit final `content`. The default V2 settings use `LM_STUDIO_MAX_TOKENS=4096` and `SYNTHESIS_TIMEOUT_SECONDS=180`.
+
+## Security
+
+The app runs locally, but page fetching still happens from your machine. By default, fetched pages are restricted to `http` and `https` URLs and private/internal targets such as `localhost`, `127.0.0.1`, `192.168.x.x`, `10.x.x.x`, link-local, multicast, and reserved IP ranges are blocked. Hostnames are resolved before fetch so a public-looking domain that points at a private IP is also blocked.
+
+Set `ALLOW_PRIVATE_NETWORK_FETCH=true` only if you intentionally want the assistant to fetch internal sites. Blocked URLs are counted as `blocked_url` and surfaced in warnings instead of being turned into citations.
 
 ## Benchmark
 

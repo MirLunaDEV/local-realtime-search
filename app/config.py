@@ -24,6 +24,13 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+def _bool_env(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class Settings:
     lm_studio_base_url: str = os.getenv("LM_STUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
@@ -43,6 +50,8 @@ class Settings:
     fetch_timeout_seconds: float = _float_env("FETCH_TIMEOUT_SECONDS", 3.0)
     crawl4ai_timeout_seconds: float = _float_env("CRAWL4AI_TIMEOUT_SECONDS", 8.0)
     synthesis_timeout_seconds: float = _float_env("SYNTHESIS_TIMEOUT_SECONDS", 180.0)
+    allow_private_network_fetch: bool = _bool_env("ALLOW_PRIVATE_NETWORK_FETCH", False)
+    resolve_fetch_hostnames: bool = _bool_env("RESOLVE_FETCH_HOSTNAMES", True)
     max_query_variants: int = _int_env("MAX_QUERY_VARIANTS", 6)
     max_candidate_urls: int = _int_env("MAX_CANDIDATE_URLS", 24)
     max_fetch_urls: int = _int_env("MAX_FETCH_URLS", 16)
