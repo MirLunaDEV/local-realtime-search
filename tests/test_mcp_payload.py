@@ -63,3 +63,35 @@ def test_mcp_payload_compacts_sources_and_citations() -> None:
     assert payload["sources"][0]["url"] == "https://example.com/docs"
     assert "canonical_url" not in payload["sources"][0]
     assert payload["source_summary"]["source_label_counts"] == {"official docs": 1}
+
+
+def test_mcp_payload_uses_deepsearch_budget() -> None:
+    citations = [
+        {
+            "id": index,
+            "title": f"Source {index}",
+            "url": f"https://example.com/{index}",
+            "text": "x" * 1800,
+            "provider": "searxng",
+            "source_type": "page",
+        }
+        for index in range(1, 30)
+    ]
+    payload = format_mcp_research_payload(
+        {
+            "direct_answer": None,
+            "mode": "deepsearch",
+            "citations": citations,
+            "sources": [],
+            "mode_profile": {
+                "mcp_max_citations": 24,
+                "mcp_max_sources": 24,
+                "mcp_citation_text_chars": 1500,
+                "mcp_source_snippet_chars": 500,
+            },
+        }
+    )
+
+    assert len(payload["citations"]) == 24
+    assert len(payload["citations"][0]["text"]) == 1500
+    assert payload["payload_budget"]["max_citations"] == 24

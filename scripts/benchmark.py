@@ -20,11 +20,11 @@ def domain_matches(url: str, expected_domains: list[str]) -> bool:
     return any(host == domain or host.endswith("." + domain) for domain in expected_domains)
 
 
-async def run_case(client: httpx.AsyncClient, api_url: str, case: dict[str, object]) -> dict[str, object]:
+async def run_case(client: httpx.AsyncClient, api_url: str, case: dict[str, object], *, mode: str) -> dict[str, object]:
     started = time.perf_counter()
     payload = {
         "question": case["question"],
-        "mode": "fast",
+        "mode": mode,
         "freshness": case.get("freshness"),
     }
     try:
@@ -59,6 +59,7 @@ async def run_case(client: httpx.AsyncClient, api_url: str, case: dict[str, obje
         "ok": bool(answer and citations),
         "request_id": data.get("request_id"),
         "answer_strategy": data.get("answer_strategy", {}),
+        "mode": data.get("mode"),
         "elapsed_ms": elapsed_ms,
         "pipeline_timings_ms": data.get("timings_ms", {}),
         "query_count": len(data.get("queries", [])),
@@ -171,6 +172,7 @@ async def main() -> int:
     parser.add_argument("--min-success-rate", type=float, default=None)
     parser.add_argument("--min-expected-domain-rate", type=float, default=None)
     parser.add_argument("--timeout", type=float, default=120.0)
+    parser.add_argument("--mode", default="fast", help="Research mode to benchmark: fast, balanced, deep, or deepsearch.")
     args = parser.parse_args()
 
     questions_path = Path(args.questions)
@@ -180,7 +182,7 @@ async def main() -> int:
         results = []
         for case in cases:
             print(f"running {case['id']}...", flush=True)
-            result = await run_case(client, args.api_url, case)
+            result = await run_case(client, args.api_url, case, mode=args.mode)
             results.append(result)
             print(
                 f"  ok={result.get('ok')} elapsed_ms={result.get('elapsed_ms')} "

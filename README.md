@@ -43,7 +43,7 @@ Use it for:
 - Provider health telemetry and weak-source warnings
 - Explicit LM Studio model selection with no hidden fallback
 - Safer handling for reasoning models that return empty final content
-- `fast`, `balanced`, and `deep` research modes
+- `fast`, `balanced`, `deep`, and `deepsearch` research modes
 
 ## Quick Start
 
@@ -162,6 +162,7 @@ Available modes:
 | `fast` | Everyday realtime answers | 8 fetches, 8 evidence chunks, 10k evidence chars, 2400 generation tokens |
 | `balanced` | More complete answers | 16 fetches, 20 evidence chunks, 24k evidence chars, 4096 generation tokens |
 | `deep` | Slow, broader evidence gathering | 24+ fetches, 40+ evidence chunks, 50k evidence chars, 8192 generation tokens |
+| `deepsearch` | Full deep research context for complex questions | 40+ fetches, 72+ evidence chunks, 110k evidence chars, 36 MCP citations, 12k generation tokens |
 
 Every response includes citations, source URLs, timings, cache hits, provider health, warnings, validation metadata, and mode profile.
 
@@ -188,7 +189,7 @@ Use local_research to answer: Compare the latest LM Studio MCP support with Open
 ```
 
 ```text
-Use local_research in deep mode to answer: What are the newest Qwen local reasoning model options for LM Studio?
+Use local_research in deepsearch mode to answer: What are the newest Qwen local reasoning model options for LM Studio? Compare sources and cite the main claims.
 ```
 
 More examples: [`examples/prompts.md`](examples/prompts.md).
@@ -266,6 +267,8 @@ uv run python scripts/benchmark.py `
 4. Select a host-diverse fetch set with strict timeouts.
 5. Extract compact evidence chunks.
 6. Return citation-ready context to LM Studio or synthesize through the API/UI path.
+
+`deepsearch` expands query variants, candidate URLs, fetched pages, per-page evidence chunks, total evidence characters, and MCP citation payload size. It is slower than `deep`, but it gives larger-context local models much more research material before they write the final answer.
 
 ## Troubleshooting
 

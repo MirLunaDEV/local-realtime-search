@@ -27,6 +27,10 @@ Use local_research in deep mode to answer: What are the newest local reasoning m
 ```
 
 ```text
+Use local_research in deepsearch mode to answer: Compare the newest local reasoning model options around 9B parameters. Include source agreement, disagreements, uncertainty, and citations.
+```
+
+```text
 Use local_research to answer: Find recent benchmark discussions for Qwen local reasoning models and summarize the tradeoffs.
 ```
 

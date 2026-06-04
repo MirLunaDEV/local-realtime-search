@@ -41,9 +41,9 @@ FRESHNESS_MAP = {
 }
 
 
-def _search_cache_key(provider: object, query: str, freshness: str | None) -> str:
+def _search_cache_key(provider: object, query: str, freshness: str | None, result_limit: int) -> str:
     provider_name = str(getattr(provider, "name", provider.__class__.__name__))
-    return f"{provider_name}|{freshness or ''}|{query}"
+    return f"{provider_name}|limit={result_limit}|{freshness or ''}|{query}"
 
 
 async def _safe_search(
@@ -52,10 +52,11 @@ async def _safe_search(
     freshness: str | None,
     cache: SearchCache,
     ttl_seconds: int,
+    result_limit: int,
 ) -> tuple[list[SearchResult], SearchTrace]:
     started = time.perf_counter()
     provider_name = str(getattr(provider, "name", provider.__class__.__name__))
-    key = _search_cache_key(provider, query, freshness)
+    key = _search_cache_key(provider, query, freshness, result_limit)
     cached = cache.get_search(key, ttl_seconds)
     if cached:
         return cached, SearchTrace(
@@ -67,7 +68,7 @@ async def _safe_search(
             elapsed_ms=int((time.perf_counter() - started) * 1000),
         )
     try:
-        results = await provider.search(query, freshness=FRESHNESS_MAP.get(freshness or ""), limit=10)
+        results = await provider.search(query, freshness=FRESHNESS_MAP.get(freshness or ""), limit=result_limit)
         if results:
             cache.set_search(key, results)
         return results, SearchTrace(
@@ -301,7 +302,14 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         DuckDuckGoHtmlProvider(timeout_seconds=profile.search_timeout_seconds),
     ]
     search_tasks = [
-        _safe_search(provider, query, effective_freshness, cache, settings.search_cache_ttl_seconds)
+        _safe_search(
+            provider,
+            query,
+            effective_freshness,
+            cache,
+            settings.search_cache_ttl_seconds,
+            profile.search_result_limit,
+        )
         for provider in search_providers
         for query in queries
     ]
@@ -316,7 +324,11 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
     marks["search"] = int((time.perf_counter() - started) * 1000)
 
     ranked = rank_results(search_results, question, limit=profile.max_candidate_urls)
-    selected_for_fetch = select_diverse_results(ranked, profile.max_fetch_urls)
+    selected_for_fetch = select_diverse_results(
+        ranked,
+        profile.max_fetch_urls,
+        max_per_host=profile.max_results_per_host,
+    )
     fetch_targets = [item.result for item in selected_for_fetch]
 
     fetch_pairs = await asyncio.gather(
@@ -350,7 +362,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
                 next_id += 1
             continue
         fetched_count += 1
-        chunks = evidence_from_page(source, page, next_id, max_chunks=2)
+        chunks = evidence_from_page(source, page, next_id, max_chunks=profile.max_chunks_per_page)
         evidence.extend(chunks)
         next_id += len(chunks)
         if len(evidence) >= profile.max_evidence_chunks:
