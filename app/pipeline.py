@@ -69,6 +69,8 @@ async def _safe_search(
         )
     try:
         results = await provider.search(query, freshness=FRESHNESS_MAP.get(freshness or ""), limit=result_limit)
+        if not results and freshness in {"day", "week", "month"}:
+            results = await provider.search(query, freshness=None, limit=result_limit)
         if results:
             cache.set_search(key, results)
         return results, SearchTrace(

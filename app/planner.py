@@ -15,6 +15,26 @@ _CURRENT_HINTS = (
     "\uc624\ub298",
     "\ucd5c\uadfc",
 )
+_BENCHMARK_HINTS = (
+    "benchmark",
+    "mmlu",
+    "gsm8k",
+    "humaneval",
+    "math",
+    "bbh",
+    "\ubca4\uce58\ub9c8\ud06c",
+    "\uc131\ub2a5 \ube44\uad50",
+    "\ucee4\ubba4\ub2c8\ud2f0",
+)
+_MODEL_FAMILY_RE = re.compile(
+    r"\b((?:gemma|qwen|llama|mistral|mixtral|phi|deepseek|yi|glm|gemini|gpt|claude)"
+    r"(?:[\s\-]?[a-z0-9.]+){0,4}\s*(?:\d+\s*b)?)\b",
+    re.IGNORECASE,
+)
+_INSTRUCTION_TAIL_RE = re.compile(
+    r"\b(?:include|including|compare|comparison|review|reviews|with|and|especially|latest|updated|data)\b.*$",
+    re.IGNORECASE,
+)
 
 
 def has_korean(text: str) -> bool:
@@ -24,6 +44,40 @@ def has_korean(text: str) -> bool:
 def looks_current(text: str) -> bool:
     lowered = text.lower()
     return any(hint in lowered for hint in _CURRENT_HINTS)
+
+
+def looks_benchmark_query(text: str) -> bool:
+    lowered = text.lower()
+    return any(hint in lowered for hint in _BENCHMARK_HINTS)
+
+
+def _compact_model_name(question: str) -> str | None:
+    match = _MODEL_FAMILY_RE.search(question)
+    if not match:
+        return None
+    model = " ".join(match.group(1).split())
+    model = _INSTRUCTION_TAIL_RE.sub("", model).strip(" ,-")
+    return model or None
+
+
+def _compact_general_query(question: str, *, max_terms: int = 12) -> str:
+    tokens = re.findall(r"[\w.+\-/\uac00-\ud7a3]+", question)
+    compact = " ".join(tokens[:max_terms])
+    return compact or question[:140]
+
+
+def _benchmark_query_variants(question: str) -> list[str]:
+    subject = _compact_model_name(question) or _compact_general_query(question, max_terms=8)
+    return [
+        f"{subject} benchmark",
+        f"{subject} MMLU GSM8K HumanEval",
+        f"{subject} model card",
+        f"{subject} Hugging Face",
+        f"{subject} Reddit review",
+        f"site:ai.google.dev {subject}",
+        f"site:developers.googleblog.com {subject}",
+        f"site:huggingface.co {subject}",
+    ]
 
 
 def is_local_search_stack_query(text: str) -> bool:
@@ -53,7 +107,7 @@ def plan_queries(question: str, max_queries: int = 6, freshness: str | None = No
     if not cleaned:
         return []
 
-    variants = [cleaned]
+    variants = _benchmark_query_variants(cleaned) if looks_benchmark_query(cleaned) else [_compact_general_query(cleaned)]
     current = looks_current(cleaned) or freshness in {"day", "week", "month"}
     lowered = cleaned.lower()
 
@@ -100,26 +154,26 @@ def plan_queries(question: str, max_queries: int = 6, freshness: str | None = No
     if current:
         variants.extend(
             [
-                f"{cleaned} latest",
-                f"{cleaned} news",
-                f"{cleaned} updated",
+                f"{variants[0]} latest",
+                f"{variants[0]} news",
+                f"{variants[0]} updated",
             ]
         )
 
     if has_korean(cleaned):
         variants.extend(
             [
-                f"{cleaned} release notes",
-                f"{cleaned} documentation",
-                f"{cleaned} \uacf5\uc2dd \ubb38\uc11c",
-                f"{cleaned} \ucd5c\uc2e0",
+                f"{variants[0]} release notes",
+                f"{variants[0]} documentation",
+                f"{variants[0]} \uacf5\uc2dd \ubb38\uc11c",
+                f"{variants[0]} \ucd5c\uc2e0",
             ]
         )
     else:
         variants.extend(
             [
-                f"{cleaned} official documentation",
-                f"{cleaned} release notes",
+                f"{variants[0]} official documentation",
+                f"{variants[0]} release notes",
             ]
         )
 
