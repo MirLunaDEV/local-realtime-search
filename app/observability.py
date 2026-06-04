@@ -9,6 +9,8 @@ logger = logging.getLogger("local_realtime_search")
 
 
 def configure_logging() -> None:
+    for noisy_logger in ("httpx", "httpcore", "mcp", "mcp.server"):
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
     if logger.handlers:
         return
     handler = logging.StreamHandler()

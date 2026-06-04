@@ -18,14 +18,55 @@ _SUBJECT_TAIL_RE = re.compile(
     r"latest|updated|community|comparison|analysis)\b.*$",
     re.IGNORECASE,
 )
+_SUBJECT_STOP_WORDS = {
+    "analysis",
+    "benchmark",
+    "benchmarks",
+    "bbh",
+    "card",
+    "community",
+    "comparison",
+    "discord",
+    "docs",
+    "documentation",
+    "eval",
+    "evaluation",
+    "github",
+    "gsm8k",
+    "huggingface",
+    "humaneval",
+    "issue",
+    "issues",
+    "latest",
+    "math",
+    "mmlu",
+    "modelcard",
+    "reddit",
+    "review",
+    "reviews",
+    "score",
+    "scores",
+    "twitter",
+    "updated",
+}
+
+
+def _strip_subject_tail(subject: str) -> str:
+    subject = _SUBJECT_TAIL_RE.sub("", subject).strip(" ,-")
+    parts: list[str] = []
+    for part in subject.split():
+        normalized = re.sub(r"[^a-z0-9]+", "", part.lower())
+        if normalized in _SUBJECT_STOP_WORDS:
+            break
+        parts.append(part)
+    return " ".join(parts).strip(" ,-")
 
 
 def model_subject_from_query(query: str) -> str | None:
     match = _MODEL_RE.search(query)
     if not match:
         return None
-    subject = " ".join(match.group(1).split()).strip(" ,-")
-    subject = _SUBJECT_TAIL_RE.sub("", subject).strip(" ,-")
+    subject = _strip_subject_tail(" ".join(match.group(1).split()).strip(" ,-"))
     return subject or None
 
 
@@ -93,15 +134,21 @@ class HuggingFaceModelsProvider:
 
     def __init__(self, timeout_seconds: float = 5.0) -> None:
         self.timeout_seconds = timeout_seconds
+        self._cache: dict[tuple[str, int], list[SearchResult]] = {}
 
     async def search(self, query: str, *, freshness: str | None = None, limit: int = 10) -> list[SearchResult]:
         subject = model_subject_from_query(query)
         if subject is None:
             return []
+        result_limit = min(max(limit, 1), 25)
+        cache_key = (subject.lower(), result_limit)
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return list(cached)[:result_limit]
 
         params = {
             "search": subject,
-            "limit": min(max(limit, 1), 25),
+            "limit": result_limit,
             "sort": "downloads",
             "direction": "-1",
         }
@@ -138,7 +185,8 @@ class HuggingFaceModelsProvider:
                     published_or_updated=str(last_modified) if last_modified else None,
                 )
             )
-        return results
+        self._cache[cache_key] = results
+        return list(results)
 
 
 class GitHubRepositoryProvider:
@@ -146,15 +194,21 @@ class GitHubRepositoryProvider:
 
     def __init__(self, timeout_seconds: float = 5.0) -> None:
         self.timeout_seconds = timeout_seconds
+        self._cache: dict[tuple[str, int], list[SearchResult]] = {}
 
     async def search(self, query: str, *, freshness: str | None = None, limit: int = 10) -> list[SearchResult]:
         subject = model_subject_from_query(query)
         if subject is None:
             return []
+        result_limit = min(max(limit, 1), 20)
+        cache_key = (subject.lower(), result_limit)
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return list(cached)[:result_limit]
 
         params = {
             "q": f"{subject} benchmark OR eval OR evaluation",
-            "per_page": min(max(limit, 1), 20),
+            "per_page": result_limit,
             "sort": "updated",
             "order": "desc",
         }
@@ -192,4 +246,5 @@ class GitHubRepositoryProvider:
                     published_or_updated=str(updated) if updated else None,
                 )
             )
-        return results
+        self._cache[cache_key] = results
+        return list(results)

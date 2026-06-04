@@ -10,6 +10,11 @@ def test_model_subject_from_query_extracts_model_name() -> None:
     assert subject == "Gemma 4 12B"
 
 
+def test_model_subject_from_query_strips_research_tail_words() -> None:
+    assert model_subject_from_query("Gemma 4 12B benchmark") == "Gemma 4 12B"
+    assert model_subject_from_query("Gemma 4 12B GitHub issues") == "Gemma 4 12B"
+
+
 @pytest.mark.anyio
 async def test_official_model_hints_adds_gemma_sources() -> None:
     results = await OfficialModelHintsProvider().search("Gemma 4 12B benchmark")

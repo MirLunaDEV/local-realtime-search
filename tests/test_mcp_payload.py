@@ -16,6 +16,9 @@ def test_mcp_payload_keeps_direct_answer_and_instruction() -> None:
 
     assert payload["answer_direct"] == "Today is 2026-06-02 in Asia/Seoul."
     assert "answer_direct" in payload["instruction_to_model"]
+    assert payload["next_action"] == "write_final_answer"
+    assert payload["ready_to_answer"] is True
+    assert payload["synthesis_contract"]["write_final_answer_now"] is True
     assert payload["answer_strategy"]["name"] == "current_date"
     assert payload["weather_provider_status"]["status"] == "not_used"
 
@@ -63,6 +66,7 @@ def test_mcp_payload_compacts_sources_and_citations() -> None:
     assert payload["sources"][0]["url"] == "https://example.com/docs"
     assert "canonical_url" not in payload["sources"][0]
     assert payload["source_summary"]["source_label_counts"] == {"official docs": 1}
+    assert payload["evidence_status"]["ready_to_answer"] is True
 
 
 def test_mcp_payload_uses_deepsearch_budget() -> None:
@@ -110,7 +114,53 @@ def test_mcp_payload_returns_terminal_direct_answer_without_citations() -> None:
 
     assert payload["terminal_result"] is True
     assert payload["citations_empty"] is True
+    assert payload["evidence_status"]["status"] == "empty"
+    assert payload["evidence_status"]["ready_to_answer"] is True
     assert payload["tool_call_policy"]["call_again_for_same_question"] is False
     assert payload["answer_direct"]
     assert "Do not call local_research again" in payload["answer_direct"]
     assert "Do not provide estimated benchmark scores" in payload["answer_direct"]
+
+
+def test_mcp_payload_does_not_treat_empty_backend_as_failure_when_citations_exist() -> None:
+    payload = format_mcp_research_payload(
+        {
+            "direct_answer": None,
+            "citations": [
+                {
+                    "id": 1,
+                    "title": "Model card",
+                    "url": "https://huggingface.co/example/model",
+                    "text": "The model card includes benchmark notes.",
+                    "provider": "huggingface_models",
+                    "source_type": "page",
+                },
+                {
+                    "id": 2,
+                    "title": "GitHub repo",
+                    "url": "https://github.com/example/repo",
+                    "text": "The repository includes evaluation scripts.",
+                    "provider": "github_repositories",
+                    "source_type": "page",
+                },
+            ],
+            "sources": [
+                {
+                    "title": "Model card",
+                    "url": "https://huggingface.co/example/model",
+                    "snippet": "Benchmark notes",
+                    "provider": "huggingface_models",
+                    "source_label": "official docs",
+                }
+            ],
+            "search_backend_status": {"status": "empty"},
+            "warnings": ["SearXNG search backend is empty at http://127.0.0.1:8080; using fallback sources only."],
+        }
+    )
+
+    assert payload["citations_empty"] is False
+    assert payload["evidence_status"]["status"] == "partial"
+    assert payload["evidence_status"]["search_backend_status"] == "empty"
+    assert payload["evidence_status"]["search_backend_required_for_success"] is False
+    assert "do not say the whole research failed" in payload["instruction_to_model"]
+    assert "when citations exist" in payload["synthesis_contract"]["empty_backend_policy"]

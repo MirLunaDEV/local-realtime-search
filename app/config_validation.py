@@ -25,7 +25,13 @@ def validate_settings(settings: Settings) -> dict[str, object]:
     issues: list[ConfigIssue] = []
 
     if settings.lm_studio_model == "your-loaded-lm-studio-model-id":
-        issues.append(ConfigIssue("warning", "LM_STUDIO_MODEL", "LM Studio model is still the placeholder value."))
+        issues.append(
+            ConfigIssue(
+                "warning",
+                "LM_STUDIO_MODEL",
+                "LM Studio model is still the placeholder value; this only affects /ask API synthesis, not the LM Studio MCP tool result.",
+            )
+        )
     if not _valid_http_url(settings.lm_studio_base_url):
         issues.append(ConfigIssue("error", "LM_STUDIO_BASE_URL", "LM Studio base URL must be an http(s) URL."))
     if not _valid_http_url(settings.searxng_base_url):

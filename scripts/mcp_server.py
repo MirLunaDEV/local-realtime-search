@@ -15,10 +15,11 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from app.config import get_settings  # noqa: E402
 from app.mcp_payload import format_mcp_research_payload  # noqa: E402
-from app.observability import log_research_result  # noqa: E402
+from app.observability import configure_logging, log_research_result  # noqa: E402
 from app.pipeline import collect_research_context  # noqa: E402
 
 
+configure_logging()
 mcp = FastMCP("local-realtime-search", json_response=True)
 
 _RECENT_RESULT_TTL_SECONDS = 120.0
