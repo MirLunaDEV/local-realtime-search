@@ -26,6 +26,7 @@ from app.search.base import SearchResult
 from app.search.duckduckgo import DuckDuckGoHtmlProvider
 from app.search.official_hints import OfficialHintsProvider
 from app.search.searxng import SearxngProvider
+from app.search.source_discovery import GitHubRepositoryProvider, HuggingFaceModelsProvider, OfficialModelHintsProvider
 from app.search_backend_health import status_from_provider_health
 from app.security import UnsafeUrlError, ensure_url_safe_for_fetch
 from app.source_policy import source_warning
@@ -300,6 +301,9 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
 
     search_providers = [
         OfficialHintsProvider(),
+        OfficialModelHintsProvider(),
+        HuggingFaceModelsProvider(timeout_seconds=profile.search_timeout_seconds),
+        GitHubRepositoryProvider(timeout_seconds=profile.search_timeout_seconds),
         SearxngProvider(settings.searxng_base_url, timeout_seconds=profile.search_timeout_seconds),
         DuckDuckGoHtmlProvider(timeout_seconds=profile.search_timeout_seconds),
     ]

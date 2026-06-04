@@ -32,7 +32,8 @@ _MODEL_FAMILY_RE = re.compile(
     re.IGNORECASE,
 )
 _INSTRUCTION_TAIL_RE = re.compile(
-    r"\b(?:include|including|compare|comparison|review|reviews|with|and|especially|latest|updated|data)\b.*$",
+    r"\b(?:benchmark|scores?|mmlu|gsm8k|humaneval|math|bbh|model\s+card|hugging\s*face|reddit|community|"
+    r"include|including|compare|comparison|review|reviews|with|and|especially|latest|updated|data)\b.*$",
     re.IGNORECASE,
 )
 

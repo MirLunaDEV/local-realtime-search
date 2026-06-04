@@ -19,6 +19,9 @@ OFFICIAL_HOSTS = {
     "docs.crawl4ai.com",
     "docs.python.org",
     "developer.mozilla.org",
+    "ai.google.dev",
+    "developers.googleblog.com",
+    "huggingface.co",
 }
 
 WEAK_HOSTS = {
