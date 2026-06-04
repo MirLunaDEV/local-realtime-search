@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from app.config import get_settings  # noqa: E402
 from app.mcp_payload import format_mcp_research_payload  # noqa: E402
+from app.observability import log_research_result  # noqa: E402
 from app.pipeline import collect_research_context  # noqa: E402
 
 
@@ -34,6 +35,7 @@ async def local_research(
         freshness=freshness,
         settings=get_settings(),
     )
+    log_research_result("mcp.local_research", context)
     await ctx.report_progress(progress=1.0, total=1.0, message="Research context ready")
     return format_mcp_research_payload(context)
 

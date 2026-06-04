@@ -83,6 +83,7 @@ def format_mcp_research_payload(
             "when warnings or provider health indicate weak coverage. Follow answer_strategy.guidance when present."
         ),
         "answer_strategy": answer_strategy,
+        "request_id": context.get("request_id"),
         "mode": context.get("mode"),
         "requested_mode": context.get("requested_mode"),
         "freshness": context.get("freshness"),
@@ -100,4 +101,5 @@ def format_mcp_research_payload(
         "cache_hits": context.get("cache_hits", {}),
         "fetcher_counts": context.get("fetcher_counts", {}),
         "knowledge_prior": context.get("knowledge_prior"),
+        "config": context.get("config", {}),
     }

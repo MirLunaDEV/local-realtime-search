@@ -8,6 +8,7 @@ from app.answer_cleanup import cleanup_answer_for_prior
 from app.answer_strategy import classify_answer_strategy
 from app.cache import SearchCache
 from app.config import Settings
+from app.config_validation import config_warnings, validate_settings
 from app.direct_answers import maybe_direct_answer
 from app.evidence import EvidenceChunk, evidence_from_page, evidence_from_snippet, select_evidence
 from app.fetch.fetcher import fetch_page_best_effort
@@ -20,6 +21,7 @@ from app.planner import plan_queries
 from app.prompts import build_answer_messages, build_finalizer_messages
 from app.provider_health import SearchTrace, summarize_search_traces
 from app.ranking import rank_results, select_diverse_results
+from app.request_id import new_request_id
 from app.search.base import SearchResult
 from app.search.duckduckgo import DuckDuckGoHtmlProvider
 from app.search.official_hints import OfficialHintsProvider
@@ -164,6 +166,7 @@ def _warnings(
 
 
 async def collect_research_context(question: str, *, mode: str, freshness: str | None, settings: Settings) -> dict[str, object]:
+    request_id = new_request_id()
     started = time.perf_counter()
     marks: dict[str, int] = {}
     cache = SearchCache(settings.cache_path)
@@ -171,6 +174,8 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
     fetcher_counts: dict[str, int] = {}
     profile = get_mode_profile(mode, settings)
     effective_freshness = infer_freshness(question, freshness)
+    config_status = validate_settings(settings)
+    settings_warnings = config_warnings(config_status)
 
     direct_answer = maybe_direct_answer(question, settings.local_timezone)
     if direct_answer is not None:
@@ -212,7 +217,9 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
                 "error": "Direct answer did not need weather.",
             },
             "confidence": "high",
-            "warnings": [],
+            "warnings": settings_warnings,
+            "request_id": request_id,
+            "config": config_status,
             "validation": {
                 "ok": True,
                 "issues": [],
@@ -271,7 +278,9 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
             "search_backend_status": search_backend_status,
             "weather_provider_status": weather_provider_status,
             "confidence": "high",
-            "warnings": [],
+            "warnings": settings_warnings,
+            "request_id": request_id,
+            "config": config_status,
             "mode": profile.effective_mode,
             "requested_mode": profile.requested_mode,
             "freshness": effective_freshness,
@@ -376,7 +385,8 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         "search_backend_status": search_backend_status,
         "weather_provider_status": weather_provider_status,
         "confidence": "medium" if fetched_count >= 3 else "low",
-        "warnings": _warnings(
+        "warnings": settings_warnings
+        + _warnings(
             evidence,
             len(search_results),
             fetched_count,
@@ -384,6 +394,8 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
             weather_provider_status,
             fetcher_counts,
         ),
+        "request_id": request_id,
+        "config": config_status,
         "mode": profile.effective_mode,
         "requested_mode": profile.requested_mode,
         "freshness": effective_freshness,

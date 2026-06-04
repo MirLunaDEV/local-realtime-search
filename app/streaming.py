@@ -42,6 +42,7 @@ async def stream_answer_events(
         "answer",
         {
             "answer": result.get("answer", ""),
+            "request_id": result.get("request_id"),
             "citations": result.get("citations", []),
             "timings_ms": result.get("timings_ms", {}),
             "provider_health": result.get("provider_health", []),

@@ -50,11 +50,15 @@ async def run_case(client: httpx.AsyncClient, api_url: str, case: dict[str, obje
     matched_sources = [source for source in sources if domain_matches(str(source.get("url", "")), expected_domains)]
     warnings = data.get("warnings", [])
     answer = str(data.get("answer", ""))
+    provider_health = data.get("provider_health", [])
+    backend_status = data.get("search_backend_status", {})
 
     return {
         "id": case["id"],
         "category": case.get("category"),
         "ok": bool(answer and citations),
+        "request_id": data.get("request_id"),
+        "answer_strategy": data.get("answer_strategy", {}),
         "elapsed_ms": elapsed_ms,
         "pipeline_timings_ms": data.get("timings_ms", {}),
         "query_count": len(data.get("queries", [])),
@@ -62,6 +66,8 @@ async def run_case(client: httpx.AsyncClient, api_url: str, case: dict[str, obje
         "citation_count": len(citations),
         "expected_domain_citations": len(matched_citations),
         "expected_domain_sources": len(matched_sources),
+        "provider_failure_count": sum(1 for item in provider_health if isinstance(item, dict) and item.get("status") == "down"),
+        "search_backend_status": backend_status.get("status") if isinstance(backend_status, dict) else None,
         "warnings": warnings,
         "answer_preview": answer[:300],
     }
@@ -78,6 +84,9 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
         return latencies[index]
 
     expected_hits = [result for result in results if int(result.get("expected_domain_citations", 0)) > 0]
+    citation_counts = [int(result.get("citation_count", 0)) for result in results]
+    warning_counts = [len(result.get("warnings", []) or []) for result in results]
+    provider_failures = [int(result.get("provider_failure_count", 0)) for result in results]
     return {
         "cases": len(results),
         "ok": len(ok_results),
@@ -85,6 +94,65 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
         "expected_domain_citation_rate": round(len(expected_hits) / max(1, len(results)), 3),
         "p50_ms": percentile(0.5),
         "p90_ms": percentile(0.9),
+        "avg_citation_count": round(sum(citation_counts) / max(1, len(results)), 2),
+        "avg_warning_count": round(sum(warning_counts) / max(1, len(results)), 2),
+        "provider_failure_count": sum(provider_failures),
+    }
+
+
+def _delta(current: object, baseline: object) -> int | float | None:
+    if current is None or baseline is None:
+        return None
+    if isinstance(current, (int, float)) and isinstance(baseline, (int, float)):
+        return round(current - baseline, 3)
+    return None
+
+
+def compare_reports(
+    current: dict[str, object],
+    baseline: dict[str, object],
+    *,
+    max_p90_regression_ms: int,
+    min_success_rate: float | None,
+    min_expected_domain_rate: float | None,
+) -> dict[str, object]:
+    current_summary = dict(current.get("summary", {}))
+    baseline_summary = dict(baseline.get("summary", {}))
+    metrics = {}
+    for key in (
+        "success_rate",
+        "expected_domain_citation_rate",
+        "p50_ms",
+        "p90_ms",
+        "avg_citation_count",
+        "avg_warning_count",
+        "provider_failure_count",
+    ):
+        metrics[key] = {
+            "current": current_summary.get(key),
+            "baseline": baseline_summary.get(key),
+            "delta": _delta(current_summary.get(key), baseline_summary.get(key)),
+        }
+
+    failures: list[str] = []
+    p90_delta = metrics["p90_ms"]["delta"]
+    if isinstance(p90_delta, (int, float)) and p90_delta > max_p90_regression_ms:
+        failures.append(f"p90 latency regressed by {p90_delta}ms")
+    success_rate = current_summary.get("success_rate")
+    if min_success_rate is not None and isinstance(success_rate, (int, float)) and success_rate < min_success_rate:
+        failures.append(f"success rate {success_rate} is below {min_success_rate}")
+    expected_rate = current_summary.get("expected_domain_citation_rate")
+    if (
+        min_expected_domain_rate is not None
+        and isinstance(expected_rate, (int, float))
+        and expected_rate < min_expected_domain_rate
+    ):
+        failures.append(f"expected-domain citation rate {expected_rate} is below {min_expected_domain_rate}")
+
+    return {
+        "metrics": metrics,
+        "failures": failures,
+        "ok": not failures,
     }
 
 
@@ -96,6 +164,12 @@ async def main() -> int:
     parser.add_argument("--api-url", default="http://127.0.0.1:8787")
     parser.add_argument("--questions", default=str(DEFAULT_QUESTIONS))
     parser.add_argument("--out", default="")
+    parser.add_argument("--baseline", default="")
+    parser.add_argument("--compare-out", default="")
+    parser.add_argument("--fail-on-regression", action="store_true")
+    parser.add_argument("--max-p90-regression-ms", type=int, default=5000)
+    parser.add_argument("--min-success-rate", type=float, default=None)
+    parser.add_argument("--min-expected-domain-rate", type=float, default=None)
     parser.add_argument("--timeout", type=float, default=120.0)
     args = parser.parse_args()
 
@@ -115,6 +189,20 @@ async def main() -> int:
             )
 
     report = {"summary": summarize(results), "results": results}
+    if args.baseline:
+        baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
+        comparison = compare_reports(
+            report,
+            baseline,
+            max_p90_regression_ms=args.max_p90_regression_ms,
+            min_success_rate=args.min_success_rate,
+            min_expected_domain_rate=args.min_expected_domain_rate,
+        )
+        report["comparison"] = comparison
+        if args.compare_out:
+            compare_out_path = Path(args.compare_out)
+            compare_out_path.parent.mkdir(parents=True, exist_ok=True)
+            compare_out_path.write_text(json.dumps(comparison, ensure_ascii=False, indent=2), encoding="utf-8")
     rendered = json.dumps(report, ensure_ascii=False, indent=2)
 
     if args.out:
@@ -122,6 +210,8 @@ async def main() -> int:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(rendered, encoding="utf-8")
     print(rendered)
+    if args.fail_on_regression and report.get("comparison") and not dict(report["comparison"]).get("ok", False):
+        return 1
     return 0 if report["summary"]["ok"] else 1
 
 

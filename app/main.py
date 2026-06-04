@@ -6,7 +6,9 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.config_validation import validate_settings
 from app.config import get_settings
+from app.observability import log_research_result
 from app.pipeline import answer_question
 from app.search_backend_health import check_search_backend
 from app.streaming import stream_answer_events
@@ -31,22 +33,26 @@ async def index() -> HTMLResponse:
 async def health() -> dict[str, object]:
     settings = get_settings()
     search_backend = await check_search_backend(settings)
-    status = "ok" if search_backend.status == "ok" else "degraded"
+    config = validate_settings(settings)
+    status = "ok" if search_backend.status == "ok" and config["status"] == "ok" else "degraded"
     return {
         "status": status,
         "search_backend": search_backend.to_dict(),
+        "config": config,
     }
 
 
 @app.post("/ask")
 async def ask(request: AskRequest) -> dict[str, object]:
     settings = get_settings()
-    return await answer_question(
+    result = await answer_question(
         request.question,
         mode=request.mode,
         freshness=request.freshness,
         settings=settings,
     )
+    log_research_result("ask", result)
+    return result
 
 
 @app.get("/ask/stream")

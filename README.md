@@ -149,6 +149,8 @@ Available modes:
 
 Every response includes citations, source URLs, timings, cache hits, provider health, warnings, validation metadata, and mode profile.
 
+Responses include `request_id`, and the API/MCP server emits one JSON-line structured log per research request with strategy, latency, citation counts, warning counts, and provider status.
+
 Responses also include `search_backend_status`. If SearXNG is down or returning empty results, the API and MCP tool result add a warning such as:
 
 ```text
@@ -192,6 +194,8 @@ Important variables:
 - `WEATHER_TIMEOUT_SECONDS`: timeout for conditional wttr.in weather lookups
 - `LM_STUDIO_MAX_TOKENS`: max generation tokens for answer synthesis
 
+`/health` also reports config validation warnings/errors, including placeholder model IDs, invalid URLs, invalid fetcher names, unsafe private-network fetch settings, and invalid numeric limits.
+
 Optional Crawl4AI extraction:
 
 ```powershell
@@ -215,6 +219,19 @@ uv run python scripts/benchmark.py --out benchmark-results/latest.json
 ```
 
 The benchmark records latency, citation count, expected-domain hits, warnings, and answer previews across mixed question types.
+
+Compare against a previous baseline:
+
+```powershell
+uv run python scripts/benchmark.py `
+  --baseline benchmark-results/baseline.json `
+  --out benchmark-results/latest.json `
+  --compare-out benchmark-results/comparison.json `
+  --fail-on-regression `
+  --max-p90-regression-ms 5000 `
+  --min-success-rate 0.8 `
+  --min-expected-domain-rate 0.5
+```
 
 ## How It Compares
 

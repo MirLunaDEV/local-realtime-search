@@ -29,3 +29,5 @@ async def test_pipeline_returns_direct_date_without_search() -> None:
     assert response["queries"] == []
     assert response["provider_health"] == []
     assert response["knowledge_prior"]["label"] == "current_date"
+    assert isinstance(response["request_id"], str)
+    assert "config" in response
