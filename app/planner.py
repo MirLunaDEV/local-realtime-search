@@ -24,7 +24,6 @@ _BENCHMARK_HINTS = (
     "bbh",
     "\ubca4\uce58\ub9c8\ud06c",
     "\uc131\ub2a5 \ube44\uad50",
-    "\ucee4\ubba4\ub2c8\ud2f0",
 )
 _MODEL_FAMILY_RE = re.compile(
     r"\b((?:gemma|qwen|llama|mistral|mixtral|phi|deepseek|yi|glm|gemini|gpt|claude)"
@@ -35,6 +34,89 @@ _INSTRUCTION_TAIL_RE = re.compile(
     r"\b(?:benchmark|scores?|mmlu|gsm8k|humaneval|math|bbh|model\s+card|hugging\s*face|reddit|community|"
     r"include|including|compare|comparison|review|reviews|with|and|especially|latest|updated|data)\b.*$",
     re.IGNORECASE,
+)
+_REQUEST_PREFIX_RE = re.compile(
+    r"^(?:please|can you|could you|find|search for|look up|investigate|summarize|analyze|compare|tell me about)\s+",
+    re.IGNORECASE,
+)
+_REQUEST_TOKEN_STOPWORDS = {
+    "please",
+    "find",
+    "search",
+    "look",
+    "lookup",
+    "investigate",
+    "summarize",
+    "analyze",
+    "analysis",
+    "detailed",
+    "detail",
+    "comprehensive",
+    "report",
+    "include",
+    "including",
+    "especially",
+    "tell",
+    "about",
+    "with",
+    "and",
+    "the",
+    "for",
+    "in",
+    "to",
+    "fix",
+    "how",
+    "does",
+    "should",
+    "would",
+    "could",
+    "\uc0c1\uc138\ud788",
+    "\uc790\uc138\ud788",
+    "\uc870\uc0ac\ud574\uc918",
+    "\uc54c\ub824\uc918",
+    "\uc815\ub9ac\ud574\uc918",
+    "\ubd84\uc11d\ud574\uc918",
+    "\ube44\uad50\ud574\uc918",
+    "\ud3ec\ud568\ud558\uc5ec",
+    "\ud2b9\ud788",
+}
+_TROUBLESHOOTING_HINTS = (
+    "error",
+    "exception",
+    "traceback",
+    "failed",
+    "cannot",
+    "fix",
+    "bug",
+    "issue",
+    "ModuleNotFoundError",
+    "\uc624\ub958",
+    "\uc5d0\ub7ec",
+    "\ud574\uacb0",
+)
+_COMMUNITY_HINTS = (
+    "reddit",
+    "discord",
+    "twitter",
+    "x.com",
+    "community",
+    "review",
+    "reviews",
+    "github issues",
+    "\ucee4\ubba4\ub2c8\ud2f0",
+    "\ub9ac\ubdf0",
+    "\ud6c4\uae30",
+)
+_DOCS_HINTS = (
+    "docs",
+    "documentation",
+    "api",
+    "changelog",
+    "release notes",
+    "official",
+    "\ubb38\uc11c",
+    "\uacf5\uc2dd",
+    "\ub9b4\ub9ac\uc988",
 )
 
 
@@ -52,6 +134,11 @@ def looks_benchmark_query(text: str) -> bool:
     return any(hint in lowered for hint in _BENCHMARK_HINTS)
 
 
+def _has_any_hint(text: str, hints: tuple[str, ...]) -> bool:
+    lowered = text.lower()
+    return any(hint.lower() in lowered for hint in hints)
+
+
 def _compact_model_name(question: str) -> str | None:
     match = _MODEL_FAMILY_RE.search(question)
     if not match:
@@ -61,10 +148,76 @@ def _compact_model_name(question: str) -> str | None:
     return model or None
 
 
-def _compact_general_query(question: str, *, max_terms: int = 12) -> str:
-    tokens = re.findall(r"[\w.+\-/\uac00-\ud7a3]+", question)
-    compact = " ".join(tokens[:max_terms])
+def _compact_general_query(question: str, *, max_terms: int = 14) -> str:
+    normalized = _REQUEST_PREFIX_RE.sub("", question.strip())
+    while True:
+        stripped = _REQUEST_PREFIX_RE.sub("", normalized).strip()
+        if stripped == normalized:
+            break
+        normalized = stripped
+    raw_tokens = re.findall(r"[\w.+\-/\uac00-\ud7a3]+", normalized)
+    tokens = [token.strip(".,:;!?()[]{}\"'") for token in raw_tokens]
+    tokens = [token for token in tokens if token]
+    filtered = [token for token in tokens if token.lower() not in _REQUEST_TOKEN_STOPWORDS]
+    compact = " ".join((filtered or tokens)[:max_terms])
+    if len(compact) > 110:
+        compact = compact[:110].rsplit(" ", 1)[0] or compact[:110]
     return compact or question[:140]
+
+
+def _generic_discovery_variants(question: str, base_query: str) -> list[str]:
+    variants: list[str] = []
+    if _has_any_hint(question, _DOCS_HINTS):
+        variants.extend(
+            [
+                f"{base_query} official documentation",
+                f"{base_query} release notes",
+                f"site:github.com {base_query}",
+            ]
+        )
+    if _has_any_hint(question, _TROUBLESHOOTING_HINTS):
+        variants.extend(
+            [
+                f"{base_query} error fix",
+                f"{base_query} GitHub issue",
+                f"{base_query} Stack Overflow",
+            ]
+        )
+    if _has_any_hint(question, _COMMUNITY_HINTS):
+        variants.extend(
+            [
+                f"{base_query} Reddit review",
+                f"{base_query} GitHub issues",
+                f"{base_query} community discussion",
+            ]
+        )
+    if " vs " in question.lower() or " versus " in question.lower() or "\ube44\uad50" in question:
+        variants.extend(
+            [
+                f"{base_query} comparison",
+                f"{base_query} alternatives",
+            ]
+        )
+    if not variants:
+        variants.extend(
+            [
+                f"{base_query} official",
+                f"{base_query} documentation",
+                f"{base_query} GitHub",
+            ]
+        )
+    return variants
+
+
+def _has_priority_generic_intent(question: str) -> bool:
+    lowered = question.lower()
+    return (
+        _has_any_hint(question, _TROUBLESHOOTING_HINTS)
+        or _has_any_hint(question, _COMMUNITY_HINTS)
+        or " vs " in lowered
+        or " versus " in lowered
+        or "\ube44\uad50" in question
+    )
 
 
 def _benchmark_query_variants(question: str) -> list[str]:
@@ -152,6 +305,9 @@ def plan_queries(question: str, max_queries: int = 6, freshness: str | None = No
             ]
         )
 
+    if not looks_benchmark_query(cleaned) and _has_priority_generic_intent(cleaned):
+        variants.extend(_generic_discovery_variants(cleaned, variants[0]))
+
     if current:
         variants.extend(
             [
@@ -177,6 +333,9 @@ def plan_queries(question: str, max_queries: int = 6, freshness: str | None = No
                 f"{variants[0]} release notes",
             ]
         )
+
+    if not looks_benchmark_query(cleaned) and not _has_priority_generic_intent(cleaned):
+        variants.extend(_generic_discovery_variants(cleaned, variants[0]))
 
     deduped: list[str] = []
     seen: set[str] = set()
