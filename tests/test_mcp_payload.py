@@ -95,3 +95,20 @@ def test_mcp_payload_uses_deepsearch_budget() -> None:
     assert len(payload["citations"]) == 24
     assert len(payload["citations"][0]["text"]) == 1500
     assert payload["payload_budget"]["max_citations"] == 24
+
+
+def test_mcp_payload_returns_terminal_direct_answer_without_citations() -> None:
+    payload = format_mcp_research_payload(
+        {
+            "direct_answer": None,
+            "citations": [],
+            "sources": [],
+            "warnings": ["SearXNG search backend is empty at http://127.0.0.1:8080."],
+            "search_backend_status": {"status": "empty"},
+        }
+    )
+
+    assert payload["terminal_result"] is True
+    assert payload["tool_call_policy"]["call_again_for_same_question"] is False
+    assert payload["answer_direct"]
+    assert "Do not call local_research again" in payload["answer_direct"]

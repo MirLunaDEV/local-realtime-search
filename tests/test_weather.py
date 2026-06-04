@@ -10,6 +10,8 @@ def test_looks_weather_question_detects_korean_and_english() -> None:
     assert looks_weather_question("오늘 서울 날씨 알려줘")
     assert looks_weather_question("weather in Tokyo right now")
     assert not looks_weather_question("latest LM Studio MCP changes")
+    assert not looks_weather_question("\uBE44\uAD50 \uBD84\uC11D")
+    assert not looks_weather_question("2026\uB144 6\uC6D4 \uD604\uC7AC \uC0DD\uC131\uD615 AI \uC8FC\uC694 \uB3D9\uD5A5\uACFC \uC131\uB2A5 \uBE44\uAD50 \uBD84\uC11D")
 
 
 def test_extract_weather_location_handles_common_patterns() -> None:

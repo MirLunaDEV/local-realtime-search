@@ -24,6 +24,25 @@ _WEATHER_HINTS = (
     "눈",
 )
 
+_STRONG_WEATHER_HINTS = (
+    "weather",
+    "forecast",
+    "temperature",
+    "\ub0a0\uc528",
+    "\uc608\ubcf4",
+    "\uae30\uc628",
+    "\uac15\uc218",
+)
+
+_WEATHER_EVENT_PATTERNS = (
+    r"\brain\b",
+    r"\bsnow\b",
+    r"(?<![\uac00-\ud7a3])\ube44(?![\uac00-\ud7a3])",
+    r"(?<![\uac00-\ud7a3])\ub208(?![\uac00-\ud7a3])",
+    r"\ube44\s*(?:\uc640|\uc624|\uc62c|\ub0b4)",
+    r"\ub208\s*(?:\uc640|\uc624|\uc62c|\ub0b4)",
+)
+
 _LOCATION_ALIASES = {
     "서울": "Seoul,South Korea",
     "부산": "Busan,South Korea",
@@ -79,7 +98,9 @@ class WeatherEvidence:
 
 def looks_weather_question(question: str) -> bool:
     lowered = question.lower()
-    return any(hint in lowered for hint in _WEATHER_HINTS)
+    if any(hint in lowered for hint in _STRONG_WEATHER_HINTS):
+        return True
+    return any(re.search(pattern, question, re.IGNORECASE) for pattern in _WEATHER_EVENT_PATTERNS)
 
 
 def extract_weather_location(question: str) -> str | None:

@@ -88,6 +88,13 @@ def format_mcp_research_payload(
         for source in list(context.get("sources", []))[:source_count]
         if isinstance(source, Mapping)
     ]
+    no_evidence = direct_answer is None and not citations
+    if no_evidence:
+        direct_answer = (
+            "I could not collect usable web evidence for this request. Do not call local_research again for the same "
+            "question in this turn; answer the user that the local search backend returned no usable cited evidence, "
+            "mention the warnings/provider status, and suggest retrying with SearXNG healthy or a narrower query."
+        )
 
     return {
         "tool": "local_research",
@@ -97,8 +104,14 @@ def format_mcp_research_payload(
             "evidence citations below, cite claims with bracket IDs like [1], and mention uncertainty "
             "when warnings or provider health indicate weak coverage. In deepsearch mode, write a structured "
             "research brief with source agreement, disagreements, and remaining unknowns. Follow "
-            "answer_strategy.guidance when present."
+            "answer_strategy.guidance when present. Never call local_research repeatedly for the same question after "
+            "this tool result; if citations are empty, report the failed evidence collection instead."
         ),
+        "terminal_result": True,
+        "tool_call_policy": {
+            "call_again_for_same_question": False,
+            "reason": "This MCP result is terminal for the current user question, even when citations are empty.",
+        },
         "answer_strategy": answer_strategy,
         "request_id": context.get("request_id"),
         "mode": context.get("mode"),
