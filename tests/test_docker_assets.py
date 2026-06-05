@@ -31,3 +31,13 @@ def test_windows_helper_can_start_api_profile() -> None:
     assert "[switch]$Api" in script
     assert "docker compose --profile api up -d searxng api" in script
     assert "http://127.0.0.1:8787/health" in script
+
+
+def test_mcp_wrapper_starts_backend_before_server() -> None:
+    script = (ROOT / "scripts" / "start_mcp_with_backend.ps1").read_text(encoding="utf-8")
+
+    assert "LOCAL_REALTIME_SEARCH_LOG_FILE" in script
+    assert ".cache" in script
+    assert "docker compose up -d searxng" in script
+    assert "http://127.0.0.1:8080/search?q=health%20check&format=json" in script
+    assert "scripts/mcp_server.py" in script

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
+from pathlib import Path
 from typing import Any
 
 
@@ -14,7 +16,13 @@ def configure_logging() -> None:
         logging.getLogger(noisy_logger).setLevel(logging.WARNING)
     if logger.handlers:
         return
-    handler = logging.StreamHandler(sys.stdout)
+    log_file = os.getenv("LOCAL_REALTIME_SEARCH_LOG_FILE")
+    if log_file:
+        path = Path(log_file)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        handler: logging.Handler = logging.FileHandler(path, encoding="utf-8")
+    else:
+        handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(logging.Formatter("%(message)s"))
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)

@@ -94,6 +94,12 @@ Generate an LM Studio MCP config for your machine:
 uv run python scripts/generate_lmstudio_mcp_config.py
 ```
 
+On Windows, generate an auto-start config if you want LM Studio to start Docker/SearXNG when the MCP plugin starts:
+
+```powershell
+uv run python scripts/generate_lmstudio_mcp_config.py --auto-start-backend
+```
+
 Copy the printed JSON into LM Studio:
 
 ```text
@@ -290,6 +296,14 @@ Or use the helper script:
 ```powershell
 .\scripts\start_search_backend.ps1
 ```
+
+To start Docker/SearXNG automatically when LM Studio starts the MCP plugin, use the generated wrapper config:
+
+```powershell
+uv run python scripts/generate_lmstudio_mcp_config.py --auto-start-backend
+```
+
+The wrapper writes startup diagnostics to `.cache/mcp-startup.log` and MCP research event logs to `.cache/mcp-events.jsonl`.
 
 MCP cannot import `app`:
 

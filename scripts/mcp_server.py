@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import time
 import re
@@ -19,6 +20,7 @@ from app.observability import configure_logging, log_research_result  # noqa: E4
 from app.pipeline import collect_research_context  # noqa: E402
 
 
+os.environ.setdefault("LOCAL_REALTIME_SEARCH_LOG_FILE", str(PROJECT_ROOT / ".cache" / "mcp-events.jsonl"))
 configure_logging()
 mcp = FastMCP("local-realtime-search", json_response=True)
 

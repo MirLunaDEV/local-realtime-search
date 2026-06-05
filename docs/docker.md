@@ -62,6 +62,22 @@ Start SearXNG plus API/UI:
 .\scripts\start_search_backend.ps1 -Api
 ```
 
+## LM Studio MCP Auto-Start
+
+On Windows, you can make LM Studio start Docker/SearXNG when the MCP plugin starts:
+
+```powershell
+uv run python scripts/generate_lmstudio_mcp_config.py --auto-start-backend
+```
+
+Copy the generated JSON into LM Studio's `mcp.json`. The generated config runs:
+
+```powershell
+scripts\start_mcp_with_backend.ps1
+```
+
+That wrapper starts Docker Desktop if needed, runs `docker compose up -d searxng`, waits for the SearXNG health endpoint, then launches `scripts/mcp_server.py`. Startup diagnostics go to `.cache/mcp-startup.log`, and MCP research event logs go to `.cache/mcp-events.jsonl` so normal MCP stdout is not polluted.
+
 ## Health Checks
 
 SearXNG:
