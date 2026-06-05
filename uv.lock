@@ -1280,6 +1280,7 @@ crawl4ai = [
     { name = "crawl4ai" },
 ]
 dev = [
+    { name = "mcp", extra = ["cli"] },
     { name = "pytest" },
 ]
 mcp = [
@@ -1291,6 +1292,7 @@ requires-dist = [
     { name = "crawl4ai", marker = "extra == 'crawl4ai'", specifier = ">=0.4.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "httpx", specifier = ">=0.27.0" },
+    { name = "mcp", extras = ["cli"], marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "mcp", extras = ["cli"], marker = "extra == 'mcp'", specifier = ">=1.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "tzdata", specifier = ">=2025.2" },

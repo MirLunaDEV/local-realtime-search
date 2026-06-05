@@ -12,6 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "mcp[cli]>=1.0.0",
   "pytest>=8.0.0",
 ]
 crawl4ai = [
