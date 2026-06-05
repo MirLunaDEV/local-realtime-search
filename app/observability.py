@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from typing import Any
 
 
@@ -13,7 +14,7 @@ def configure_logging() -> None:
         logging.getLogger(noisy_logger).setLevel(logging.WARNING)
     if logger.handlers:
         return
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(logging.Formatter("%(message)s"))
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
