@@ -114,6 +114,12 @@ Use local_research to answer: What changed recently in LM Studio MCP support?
 
 If the tool call appears and returns citations/source URLs, it is working.
 
+To diagnose the local stack from LM Studio, call:
+
+```text
+Use local_status to check Docker, SearXNG, API/UI, config, and recent MCP startup logs.
+```
+
 ## MCP Config
 
 An example config lives at [`mcp/lmstudio.mcp.json`](mcp/lmstudio.mcp.json).
@@ -183,6 +189,8 @@ SearXNG search backend is down at http://127.0.0.1:8080; using fallback sources 
 Weather questions use a short `wttr.in` lookup before broad web search. Non-weather questions do not call the weather provider, so this does not add startup latency to normal prompts.
 
 Responses also include `answer_strategy`, a fast rule-based routing hint that tells LM Studio whether the answer should behave like a direct answer, weather lookup, docs lookup, current fact check, comparison, benchmark analysis, or general research.
+
+The MCP server also exposes `local_status`, a diagnostic tool that reports Docker engine reachability, SearXNG health, optional API/UI health, config warnings, recent startup logs, and recommended actions.
 
 ## Example Prompts
 
