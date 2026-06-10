@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -59,6 +60,21 @@ def _run_command(args: list[str], *, cwd: Path, timeout_seconds: float = 5.0) ->
     }
 
 
+def _append_log(path: Path, *, label: str, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rendered = json.dumps(
+        {
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            "label": label,
+            "payload": payload,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(rendered + "\n")
+
+
 def _parse_compose_ps(text: str) -> list[dict[str, object]]:
     if not text.strip():
         return []
@@ -101,6 +117,22 @@ def _check_docker(project_root: Path) -> dict[str, object]:
     result["compose_check"] = compose
     result["compose_services"] = _parse_compose_ps(str(compose.get("stdout") or "")) if compose["status"] == "ok" else []
     return result
+
+
+def _recover_backend_command(project_root: Path, *, include_api: bool) -> list[str]:
+    powershell = shutil.which("powershell.exe") or shutil.which("powershell") or "powershell.exe"
+    script = project_root / "scripts" / "start_search_backend.ps1"
+    args = [
+        powershell,
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(script),
+    ]
+    if include_api:
+        args.append("-Api")
+    return args
 
 
 async def _check_api_health(url: str = "http://127.0.0.1:8787/health") -> dict[str, object]:
@@ -176,6 +208,67 @@ def _recommended_actions(
     if not startup_log.get("exists"):
         actions.append("No MCP startup log was found. LM Studio may still be using the old direct mcp_server.py config.")
     return actions
+
+
+async def recover_search_backend(
+    *,
+    settings: Settings,
+    project_root: Path,
+    include_api: bool = False,
+    timeout_seconds: float = 240.0,
+) -> dict[str, object]:
+    """Start Docker/SearXNG using the Windows helper script, then return fresh diagnostics."""
+    command = _recover_backend_command(project_root, include_api=include_api)
+    recovery = await asyncio.to_thread(
+        _run_command,
+        command,
+        cwd=project_root,
+        timeout_seconds=timeout_seconds,
+    )
+    _append_log(project_root / ".cache" / "local-recover.jsonl", label="recover_search_backend", payload=recovery)
+
+    search_backend = await check_search_backend(settings)
+    api_status = await _check_api_health() if include_api else {"status": "not_checked", "required_for_mcp": False}
+    status = "ok" if recovery.get("status") == "ok" and search_backend.status in {"ok", "degraded", "empty"} else "failed"
+    recommended_actions: list[str] = []
+    if status != "ok":
+        recommended_actions.extend(
+            [
+                "Open Docker Desktop manually and wait until the engine is ready.",
+                "Run .\\scripts\\start_search_backend.ps1 from the project root.",
+                "Then call local_status again to verify the backend.",
+            ]
+        )
+    elif search_backend.status == "degraded":
+        recommended_actions.append(
+            "SearXNG is running, but some upstream engines are unavailable; fallback providers can still collect evidence."
+        )
+
+    return {
+        "tool": "local_recover",
+        "overall_status": status,
+        "action": "start_search_backend",
+        "include_api": include_api,
+        "instruction_to_model": (
+            "Summarize whether recovery succeeded in the user's language. If overall_status is ok, tell the user "
+            "that local_research can be retried. If failed, show the recommended actions and mention the recovery log."
+        ),
+        "command": {
+            "program": command[0],
+            "args": command[1:],
+            "cwd": str(project_root),
+        },
+        "recovery": recovery,
+        "checks": {
+            "searxng": search_backend.to_dict(),
+            "api_ui": api_status,
+        },
+        "logs": {
+            "recovery": str(project_root / ".cache" / "local-recover.jsonl"),
+            "startup": str(project_root / ".cache" / "mcp-startup.log"),
+        },
+        "recommended_actions": recommended_actions,
+    }
 
 
 def _diagnosis(

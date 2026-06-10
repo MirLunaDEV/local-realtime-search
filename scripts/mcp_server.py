@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.config import get_settings  # noqa: E402
-from app.local_status import collect_local_status  # noqa: E402
+from app.local_status import collect_local_status, recover_search_backend  # noqa: E402
 from app.mcp_payload import format_mcp_research_payload  # noqa: E402
 from app.observability import configure_logging, log_research_result  # noqa: E402
 from app.pipeline import collect_research_context  # noqa: E402
@@ -107,6 +107,20 @@ async def local_status(
         settings=get_settings(),
         project_root=PROJECT_ROOT,
         include_logs=include_logs,
+    )
+
+
+@mcp.tool()
+async def local_recover(
+    ctx: Context,
+    include_api: bool = False,
+) -> dict[str, Any]:
+    """Start Docker/SearXNG, optionally API/UI, then return fresh backend diagnostics."""
+    await ctx.info("Starting local realtime search backend")
+    return await recover_search_backend(
+        settings=get_settings(),
+        project_root=PROJECT_ROOT,
+        include_api=include_api,
     )
 
 

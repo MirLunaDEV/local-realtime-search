@@ -78,6 +78,8 @@ scripts\start_mcp_with_backend.ps1
 
 That wrapper starts Docker Desktop if needed, runs `docker compose up -d searxng`, waits for the SearXNG health endpoint, then launches `scripts/mcp_server.py`. Startup diagnostics go to `.cache/mcp-startup.log`, and MCP research event logs go to `.cache/mcp-events.jsonl` so normal MCP stdout is not polluted.
 
+If LM Studio is already running and the backend is down, call the MCP tool `local_recover`. It runs the same Windows helper, waits for SearXNG, and returns fresh health checks. Use `include_api=true` if you also want the API/UI container started.
+
 ## Health Checks
 
 SearXNG:

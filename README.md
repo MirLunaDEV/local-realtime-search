@@ -120,6 +120,12 @@ To diagnose the local stack from LM Studio, call:
 Use local_status to check Docker, SearXNG, API/UI, config, and recent MCP startup logs.
 ```
 
+To recover the local search backend from LM Studio, call:
+
+```text
+Use local_recover to start Docker and SearXNG, then report whether local_research is ready.
+```
+
 ## MCP Config
 
 An example config lives at [`mcp/lmstudio.mcp.json`](mcp/lmstudio.mcp.json).
@@ -190,7 +196,7 @@ Weather questions use a short `wttr.in` lookup before broad web search. Non-weat
 
 Responses also include `answer_strategy`, a fast rule-based routing hint that tells LM Studio whether the answer should behave like a direct answer, weather lookup, docs lookup, current fact check, comparison, benchmark analysis, or general research.
 
-The MCP server also exposes `local_status`, a diagnostic tool that reports Docker engine reachability, SearXNG health, optional API/UI health, config warnings, recent startup logs, and recommended actions.
+The MCP server also exposes `local_status`, a diagnostic tool that reports Docker engine reachability, SearXNG health, optional API/UI health, config warnings, recent startup logs, and recommended actions. For one-click recovery, `local_recover` starts Docker/SearXNG through the Windows helper script and then returns fresh health checks.
 
 ## Example Prompts
 

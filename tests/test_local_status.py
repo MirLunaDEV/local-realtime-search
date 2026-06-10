@@ -121,3 +121,69 @@ def test_run_command_handles_missing_binary(tmp_path: Path) -> None:
 
     assert result["status"] == "missing"
     assert result["error"]
+
+
+def test_recover_backend_command_can_include_api(tmp_path: Path) -> None:
+    command = local_status._recover_backend_command(tmp_path, include_api=True)
+
+    assert command[1:5] == ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]
+    assert command[-1] == "-Api"
+    assert "start_search_backend.ps1" in command[-2]
+
+
+@pytest.mark.anyio
+async def test_recover_search_backend_reports_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    commands: list[list[str]] = []
+
+    def fake_run_command(args: list[str], **kwargs: object) -> dict[str, object]:
+        commands.append(args)
+        return {"status": "ok", "returncode": 0, "stdout": "SearXNG health check HTTP status: 200"}
+
+    async def fake_search(settings: Settings) -> SearchBackendStatus:
+        return SearchBackendStatus(
+            provider="searxng",
+            status="ok",
+            base_url=settings.searxng_base_url,
+            elapsed_ms=10,
+            result_count=5,
+        )
+
+    monkeypatch.setattr(local_status, "_run_command", fake_run_command)
+    monkeypatch.setattr(local_status, "check_search_backend", fake_search)
+
+    payload = await local_status.recover_search_backend(
+        settings=Settings(),
+        project_root=tmp_path,
+        include_api=False,
+    )
+
+    assert payload["tool"] == "local_recover"
+    assert payload["overall_status"] == "ok"
+    assert commands
+    assert (tmp_path / ".cache" / "local-recover.jsonl").exists()
+
+
+@pytest.mark.anyio
+async def test_recover_search_backend_reports_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def fake_run_command(args: list[str], **kwargs: object) -> dict[str, object]:
+        return {"status": "failed", "returncode": 1, "stderr": "docker unavailable"}
+
+    async def fake_search(settings: Settings) -> SearchBackendStatus:
+        return SearchBackendStatus(
+            provider="searxng",
+            status="down",
+            base_url=settings.searxng_base_url,
+            elapsed_ms=10,
+            error="connect failed",
+        )
+
+    monkeypatch.setattr(local_status, "_run_command", fake_run_command)
+    monkeypatch.setattr(local_status, "check_search_backend", fake_search)
+
+    payload = await local_status.recover_search_backend(
+        settings=Settings(),
+        project_root=tmp_path,
+    )
+
+    assert payload["overall_status"] == "failed"
+    assert payload["recommended_actions"]
