@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.answer_strategy import classify_answer_strategy
 from app.config import Settings
+
+
+_EXPLICIT_MODES = {"fast", "balanced", "deep", "deepsearch"}
+_AUTO_MODES = {"", "auto", "adaptive", "smart"}
 
 
 @dataclass(frozen=True)
@@ -27,6 +32,95 @@ class ModeProfile:
     synthesis_timeout_seconds: float
     lm_studio_max_tokens: int
     lm_studio_finalizer_max_tokens: int
+
+
+@dataclass(frozen=True)
+class AdaptiveModeSelection:
+    requested_mode: str
+    selected_mode: str
+    auto: bool
+    reason: str
+    answer_strategy: str
+    freshness: str | None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "requested_mode": self.requested_mode,
+            "selected_mode": self.selected_mode,
+            "auto": self.auto,
+            "reason": self.reason,
+            "answer_strategy": self.answer_strategy,
+            "freshness": self.freshness,
+        }
+
+
+def _normalized_mode(mode: str) -> str:
+    requested = (mode or "auto").lower().strip()
+    aliases = {
+        "deep-search": "deepsearch",
+        "deep_search": "deepsearch",
+        "research": "deepsearch",
+    }
+    return aliases.get(requested, requested)
+
+
+def select_research_mode(
+    question: str,
+    *,
+    requested_mode: str,
+    requested_freshness: str | None,
+    direct_answer_label: str | None = None,
+) -> AdaptiveModeSelection:
+    requested = (requested_mode or "auto").lower().strip()
+    normalized = _normalized_mode(requested)
+    strategy = classify_answer_strategy(
+        question,
+        requested_freshness=requested_freshness,
+        direct_answer_label=direct_answer_label,
+    )
+
+    if normalized not in _AUTO_MODES:
+        selected = normalized if normalized in _EXPLICIT_MODES else "fast"
+        reason = "explicit_mode" if normalized in _EXPLICIT_MODES else "unknown_mode_fallback"
+        return AdaptiveModeSelection(
+            requested_mode=requested,
+            selected_mode=selected,
+            auto=False,
+            reason=reason,
+            answer_strategy=strategy.name,
+            freshness=strategy.freshness,
+        )
+
+    if direct_answer_label is not None:
+        selected = "fast"
+        reason = "direct_runtime_answer"
+    elif strategy.name == "weather":
+        selected = "fast"
+        reason = "weather_provider_shortcut"
+    elif strategy.name == "benchmark":
+        selected = "deepsearch"
+        reason = "benchmark_requires_broad_evidence"
+    elif strategy.name == "comparison":
+        selected = "deep"
+        reason = "comparison_needs_multiple_sources"
+    elif strategy.name == "docs_lookup":
+        selected = "balanced"
+        reason = "official_docs_need_moderate_context"
+    elif strategy.name == "current_fact":
+        selected = "balanced"
+        reason = "current_fact_needs_verification"
+    else:
+        selected = "balanced"
+        reason = "general_research_default"
+
+    return AdaptiveModeSelection(
+        requested_mode=requested,
+        selected_mode=selected,
+        auto=True,
+        reason=reason,
+        answer_strategy=strategy.name,
+        freshness=strategy.freshness,
+    )
 
 
 def get_mode_profile(mode: str, settings: Settings) -> ModeProfile:

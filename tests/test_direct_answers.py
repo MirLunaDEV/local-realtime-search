@@ -33,9 +33,12 @@ def test_maybe_direct_answer_handles_english_current_time() -> None:
 
 @pytest.mark.anyio
 async def test_pipeline_returns_direct_date_without_search() -> None:
-    response = await answer_question("오늘 날짜 알려줘", mode="fast", freshness=None, settings=Settings())
+    response = await answer_question("오늘 날짜 알려줘", mode="auto", freshness=None, settings=Settings())
 
     assert response["confidence"] == "high"
+    assert response["mode"] == "fast"
+    assert response["requested_mode"] == "auto"
+    assert response["adaptive_mode"]["reason"] == "direct_runtime_answer"
     assert response["queries"] == []
     assert response["provider_health"] == []
     assert response["knowledge_prior"]["label"] == "current_date"

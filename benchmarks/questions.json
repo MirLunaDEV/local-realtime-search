@@ -8,6 +8,7 @@
     "min_citations": 0,
     "min_sources": 0,
     "expected_answer_strategy": "current_datetime",
+    "expected_selected_mode": "fast",
     "allowed_search_backend_statuses": ["not_used"],
     "required_any_answer_terms": [["Asia/Seoul", "UTC"]]
   },
@@ -18,6 +19,7 @@
     "freshness": "day",
     "expected_domains": ["wttr.in"],
     "expected_answer_strategy": "weather",
+    "expected_selected_mode": "fast",
     "allowed_search_backend_statuses": ["not_used"],
     "required_evidence_terms": ["temperature"]
   },
@@ -28,6 +30,7 @@
     "freshness": "month",
     "expected_domains": ["lmstudio.ai"],
     "expected_answer_strategy": "docs_lookup",
+    "expected_selected_mode": "balanced",
     "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
     "required_any_evidence_terms": [["tool", "tools"], ["LM Studio"]]
   },
@@ -38,6 +41,7 @@
     "freshness": "month",
     "expected_domains": ["lmstudio.ai"],
     "expected_answer_strategy": "docs_lookup",
+    "expected_selected_mode": "balanced",
     "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
     "required_any_evidence_terms": [["changelog", "release", "version"]]
   },
@@ -48,6 +52,7 @@
     "freshness": "year",
     "expected_domains": ["docs.searxng.org", "github.com"],
     "expected_answer_strategy": "docs_lookup",
+    "expected_selected_mode": "balanced",
     "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
     "required_evidence_terms": ["JSON"]
   },
@@ -86,6 +91,7 @@
     "freshness": "month",
     "expected_domains": ["docs.searxng.org", "lmstudio.ai", "github.com", "docs.crawl4ai.com"],
     "expected_answer_strategy": "comparison",
+    "expected_selected_mode": "deep",
     "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
     "required_any_evidence_terms": [["SearXNG", "DuckDuckGo", "Crawl4AI"], ["LM Studio"]]
   },
@@ -96,6 +102,7 @@
     "freshness": "month",
     "expected_domains": ["docs.searxng.org", "lmstudio.ai", "github.com"],
     "expected_answer_strategy": "comparison",
+    "expected_selected_mode": "deep",
     "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
     "required_any_evidence_terms": [["SearXNG", "search API"], ["LM Studio"]]
   },
@@ -172,6 +179,7 @@
     "freshness": "month",
     "expected_domains": ["huggingface.co", "github.com", "lmstudio.ai", "qwenlm.github.io"],
     "expected_answer_strategy": "benchmark",
+    "expected_selected_mode": "deepsearch",
     "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
     "required_any_evidence_terms": [["Qwen", "Qwen3"], ["benchmark", "eval", "evaluation"]]
   },

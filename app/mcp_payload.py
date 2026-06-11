@@ -185,6 +185,7 @@ def format_mcp_research_payload(
         "request_id": context.get("request_id"),
         "mode": context.get("mode"),
         "requested_mode": context.get("requested_mode"),
+        "adaptive_mode": context.get("adaptive_mode", {}),
         "freshness": context.get("freshness"),
         "requested_freshness": context.get("requested_freshness"),
         "queries": context.get("queries", []),

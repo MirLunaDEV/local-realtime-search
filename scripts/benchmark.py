@@ -217,6 +217,19 @@ def evaluate_case_result(case: dict[str, object], data: dict[str, object], *, el
             f"strategy={actual_strategy!r}, expected={expected_strategy!r}",
         )
 
+    expected_selected_mode = case.get("expected_selected_mode")
+    if expected_selected_mode:
+        adaptive_mode = data.get("adaptive_mode")
+        auto_selected = isinstance(adaptive_mode, dict) and adaptive_mode.get("auto") is True
+        actual_mode = data.get("mode")
+        _add_check(
+            checks,
+            failures,
+            "selected_mode",
+            not auto_selected or actual_mode == str(expected_selected_mode),
+            f"mode={actual_mode!r}, expected={expected_selected_mode!r} when auto mode is active",
+        )
+
     allowed_backend_statuses = _string_list(case.get("allowed_search_backend_statuses"))
     if allowed_backend_statuses:
         actual_status = _backend_status(data)
@@ -437,7 +450,7 @@ async def main() -> int:
     parser.add_argument("--min-success-rate", type=float, default=None)
     parser.add_argument("--min-expected-domain-rate", type=float, default=None)
     parser.add_argument("--timeout", type=float, default=120.0)
-    parser.add_argument("--mode", default="fast", help="Research mode to benchmark: fast, balanced, deep, or deepsearch.")
+    parser.add_argument("--mode", default="auto", help="Research mode to benchmark: auto, fast, balanced, deep, or deepsearch.")
     parser.add_argument("--case-id", action="append", default=[], help="Run one case ID. Can be passed more than once.")
     parser.add_argument("--category", action="append", default=[], help="Run one category. Can be passed more than once.")
     parser.add_argument("--limit", type=int, default=None, help="Limit the selected cases after filtering.")

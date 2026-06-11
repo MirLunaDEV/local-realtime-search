@@ -35,7 +35,7 @@ async def main() -> int:
                 "http://127.0.0.1:8787/ask",
                 json={
                     "question": item["question"],
-                    "mode": "fast",
+                    "mode": "auto",
                     "freshness": item["freshness"],
                 },
             )
@@ -68,4 +68,3 @@ async def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(asyncio.run(main()))
-

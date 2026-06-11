@@ -28,6 +28,7 @@ def test_evaluate_case_result_passes_quality_gates() -> None:
             "id": "lmstudio_mcp",
             "expected_domains": ["lmstudio.ai"],
             "expected_answer_strategy": "general_research",
+            "expected_selected_mode": "deep",
             "required_evidence_terms": ["MCP"],
             "allowed_search_backend_statuses": ["ok", "degraded"],
         },
@@ -48,6 +49,8 @@ def test_evaluate_case_result_passes_quality_gates() -> None:
                 }
             ],
             "answer_strategy": {"name": "general_research"},
+            "mode": "deep",
+            "adaptive_mode": {"auto": True, "selected_mode": "deep"},
             "search_backend_status": {"status": "degraded"},
             "warnings": [],
         },
@@ -77,6 +80,7 @@ def test_evaluate_case_result_reports_actionable_failures() -> None:
             "id": "bad_case",
             "expected_domains": ["lmstudio.ai"],
             "expected_answer_strategy": "docs_lookup",
+            "expected_selected_mode": "balanced",
             "required_evidence_terms": ["MCP"],
             "forbidden_answer_terms": ["estimated"],
         },
@@ -91,6 +95,8 @@ def test_evaluate_case_result_reports_actionable_failures() -> None:
             ],
             "sources": [],
             "answer_strategy": {"name": "general_research"},
+            "mode": "fast",
+            "adaptive_mode": {"auto": True, "selected_mode": "fast"},
             "search_backend_status": {"status": "ok"},
             "warnings": [],
         },
@@ -101,6 +107,7 @@ def test_evaluate_case_result_reports_actionable_failures() -> None:
     assert any("expected_domain_citations" in reason for reason in result["failure_reasons"])
     assert any("forbidden_answer_term" in reason for reason in result["failure_reasons"])
     assert any("answer_strategy" in reason for reason in result["failure_reasons"])
+    assert any("selected_mode" in reason for reason in result["failure_reasons"])
 
 
 def test_evaluate_case_result_allows_direct_answers_without_citations() -> None:

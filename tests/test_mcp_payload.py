@@ -9,6 +9,7 @@ def test_mcp_payload_keeps_direct_answer_and_instruction() -> None:
             "sources": [],
             "mode": "fast",
             "requested_mode": "fast",
+            "adaptive_mode": {"auto": False, "selected_mode": "fast", "reason": "explicit_mode"},
             "weather_provider_status": {"status": "not_used"},
             "answer_strategy": {"name": "current_date", "guidance": "direct"},
         }
@@ -19,6 +20,7 @@ def test_mcp_payload_keeps_direct_answer_and_instruction() -> None:
     assert payload["next_action"] == "write_final_answer"
     assert payload["ready_to_answer"] is True
     assert payload["synthesis_contract"]["write_final_answer_now"] is True
+    assert payload["adaptive_mode"]["selected_mode"] == "fast"
     assert payload["answer_strategy"]["name"] == "current_date"
     assert payload["weather_provider_status"]["status"] == "not_used"
 

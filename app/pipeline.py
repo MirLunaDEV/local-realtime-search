@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 from app.answer_cleanup import cleanup_answer_for_prior
 from app.answer_strategy import classify_answer_strategy
@@ -16,7 +16,7 @@ from app.fetch.http_fetcher import FetchedPage
 from app.freshness import infer_freshness
 from app.knowledge_prior import get_knowledge_prior
 from app.lmstudio import EmptyFinalContentError, LmStudioClient
-from app.modes import get_mode_profile
+from app.modes import get_mode_profile, select_research_mode
 from app.planner import plan_queries
 from app.prompts import build_answer_messages, build_finalizer_messages
 from app.provider_health import SearchTrace, summarize_search_traces
@@ -176,12 +176,21 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
     cache = SearchCache(settings.cache_path)
     cache_hits = {"search": 0, "page": 0}
     fetcher_counts: dict[str, int] = {}
-    profile = get_mode_profile(mode, settings)
     effective_freshness = infer_freshness(question, freshness)
     config_status = validate_settings(settings)
     settings_warnings = config_warnings(config_status)
 
     direct_answer = maybe_direct_answer(question, settings.local_timezone)
+    mode_selection = select_research_mode(
+        question,
+        requested_mode=mode,
+        requested_freshness=freshness,
+        direct_answer_label=direct_answer.label if direct_answer is not None else None,
+    )
+    profile = replace(
+        get_mode_profile(mode_selection.selected_mode, settings),
+        requested_mode=mode_selection.requested_mode,
+    )
     if direct_answer is not None:
         answer_strategy = classify_answer_strategy(
             question,
@@ -232,6 +241,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
             },
             "mode": profile.effective_mode,
             "requested_mode": profile.requested_mode,
+            "adaptive_mode": mode_selection.to_dict(),
             "freshness": effective_freshness,
             "requested_freshness": freshness,
             "answer_strategy": answer_strategy,
@@ -287,6 +297,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
             "config": config_status,
             "mode": profile.effective_mode,
             "requested_mode": profile.requested_mode,
+            "adaptive_mode": mode_selection.to_dict(),
             "freshness": effective_freshness,
             "requested_freshness": freshness,
             "answer_strategy": answer_strategy,
@@ -416,6 +427,7 @@ async def collect_research_context(question: str, *, mode: str, freshness: str |
         "config": config_status,
         "mode": profile.effective_mode,
         "requested_mode": profile.requested_mode,
+        "adaptive_mode": mode_selection.to_dict(),
         "freshness": effective_freshness,
         "requested_freshness": freshness,
         "answer_strategy": answer_strategy,
@@ -436,7 +448,7 @@ async def answer_question(question: str, *, mode: str, freshness: str | None, se
         context["answer"] = direct_answer
         return context
 
-    profile = get_mode_profile(mode, settings)
+    profile = get_mode_profile(str(context.get("mode") or mode), settings)
     prior = get_knowledge_prior(question)
 
     if evidence:

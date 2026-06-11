@@ -16,7 +16,7 @@ from app.streaming import stream_answer_events
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=1)
-    mode: str = "fast"
+    mode: str = "auto"
     freshness: str | None = None
 
 
@@ -56,7 +56,7 @@ async def ask(request: AskRequest) -> dict[str, object]:
 
 
 @app.get("/ask/stream")
-async def ask_stream(question: str, mode: str = "fast", freshness: str | None = None) -> StreamingResponse:
+async def ask_stream(question: str, mode: str = "auto", freshness: str | None = None) -> StreamingResponse:
     settings = get_settings()
     return StreamingResponse(
         stream_answer_events(question, mode=mode, freshness=freshness, settings=settings),

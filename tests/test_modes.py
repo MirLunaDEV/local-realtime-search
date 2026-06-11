@@ -1,5 +1,5 @@
 from app.config import Settings
-from app.modes import get_mode_profile
+from app.modes import get_mode_profile, select_research_mode
 
 
 def test_fast_profile_is_smaller_than_balanced() -> None:
@@ -49,3 +49,72 @@ def test_unknown_mode_falls_back_to_fast() -> None:
 
     assert profile.requested_mode == "turbo"
     assert profile.effective_mode == "fast"
+
+
+def test_auto_mode_uses_fast_for_direct_answers() -> None:
+    selection = select_research_mode(
+        "오늘 날짜와 현재 시간이 뭐야?",
+        requested_mode="auto",
+        requested_freshness=None,
+        direct_answer_label="current_datetime",
+    )
+
+    assert selection.auto is True
+    assert selection.selected_mode == "fast"
+    assert selection.reason == "direct_runtime_answer"
+
+
+def test_auto_mode_uses_fast_for_weather() -> None:
+    selection = select_research_mode(
+        "What is the weather in Seoul today?",
+        requested_mode="auto",
+        requested_freshness="day",
+    )
+
+    assert selection.selected_mode == "fast"
+    assert selection.answer_strategy == "weather"
+
+
+def test_auto_mode_uses_deepsearch_for_benchmarks() -> None:
+    selection = select_research_mode(
+        "What are the latest Qwen local reasoning model benchmark results?",
+        requested_mode="auto",
+        requested_freshness="month",
+    )
+
+    assert selection.selected_mode == "deepsearch"
+    assert selection.reason == "benchmark_requires_broad_evidence"
+
+
+def test_auto_mode_uses_deep_for_comparisons() -> None:
+    selection = select_research_mode(
+        "Compare LM Studio MCP with Open WebUI web search.",
+        requested_mode="auto",
+        requested_freshness="month",
+    )
+
+    assert selection.selected_mode == "deep"
+    assert selection.answer_strategy == "comparison"
+
+
+def test_auto_mode_uses_balanced_for_docs_lookup() -> None:
+    selection = select_research_mode(
+        "How do you enable JSON search results in SearXNG?",
+        requested_mode="auto",
+        requested_freshness="year",
+    )
+
+    assert selection.selected_mode == "balanced"
+    assert selection.answer_strategy == "docs_lookup"
+
+
+def test_explicit_mode_is_respected() -> None:
+    selection = select_research_mode(
+        "What are the latest Qwen local reasoning model benchmark results?",
+        requested_mode="fast",
+        requested_freshness="month",
+    )
+
+    assert selection.auto is False
+    assert selection.selected_mode == "fast"
+    assert selection.reason == "explicit_mode"

@@ -177,6 +177,7 @@ Available modes:
 
 | Mode | Use case | Default profile |
 |---|---|---|
+| `auto` | Default adaptive routing | Direct/date/weather -> `fast`; docs/current facts -> `balanced`; comparisons -> `deep`; benchmarks -> `deepsearch` |
 | `fast` | Everyday realtime answers | 8 fetches, 8 evidence chunks, 10k evidence chars, 4s+ search timeout, 2400 generation tokens |
 | `balanced` | More complete answers | 16 fetches, 20 evidence chunks, 24k evidence chars, 4096 generation tokens |
 | `deep` | Slow, broader evidence gathering | 24+ fetches, 40+ evidence chunks, 50k evidence chars, 8192 generation tokens |
@@ -272,6 +273,8 @@ uv run python scripts/benchmark.py --case-id lmstudio_mcp --out benchmark-result
 The benchmark records latency, citation count, expected-domain hits, warnings, and answer previews across mixed question types.
 
 Each case in [`benchmarks/questions.json`](benchmarks/questions.json) can also define quality gates such as `min_citations`, `expected_domains`, `expected_answer_strategy`, `allowed_search_backend_statuses`, `required_evidence_terms`, `required_any_evidence_terms`, and `forbidden_answer_terms`. Failed gates are reported per case in `failure_reasons`, so regressions are easier to diagnose than a single pass/fail number.
+
+The benchmark defaults to `--mode auto`, so it measures the normal adaptive LM Studio experience unless you explicitly pin a mode.
 
 Compare against a previous baseline:
 

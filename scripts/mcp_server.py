@@ -71,7 +71,7 @@ def _get_recent_payload(key: tuple[str, str, str]) -> dict[str, Any] | None:
 async def local_research(
     question: str,
     ctx: Context,
-    mode: str = "fast",
+    mode: str = "auto",
     freshness: str | None = None,
 ) -> dict[str, Any]:
     """Collect fresh web evidence, citations, source links, and provider health for a user question."""
