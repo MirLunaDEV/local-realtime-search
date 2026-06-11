@@ -1,107 +1,187 @@
 [
   {
+    "id": "local_current_datetime",
+    "category": "direct_answer",
+    "question": "What is today's date and current time in the local timezone?",
+    "freshness": null,
+    "allow_direct_answer": true,
+    "min_citations": 0,
+    "min_sources": 0,
+    "expected_answer_strategy": "current_datetime",
+    "allowed_search_backend_statuses": ["not_used"],
+    "required_any_answer_terms": [["Asia/Seoul", "UTC"]]
+  },
+  {
+    "id": "seoul_weather_today",
+    "category": "weather",
+    "question": "What is the weather in Seoul today?",
+    "freshness": "day",
+    "expected_domains": ["wttr.in"],
+    "expected_answer_strategy": "weather",
+    "allowed_search_backend_statuses": ["not_used"],
+    "required_evidence_terms": ["temperature"]
+  },
+  {
     "id": "lmstudio_tool_use",
     "category": "official_docs",
     "question": "How does LM Studio currently support tool use through its local API?",
     "freshness": "month",
-    "expected_domains": ["lmstudio.ai"]
+    "expected_domains": ["lmstudio.ai"],
+    "expected_answer_strategy": "docs_lookup",
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["tool", "tools"], ["LM Studio"]]
   },
   {
     "id": "lmstudio_changelog",
     "category": "latest_release",
     "question": "What is the latest LM Studio changelog update?",
     "freshness": "month",
-    "expected_domains": ["lmstudio.ai"]
+    "expected_domains": ["lmstudio.ai"],
+    "expected_answer_strategy": "docs_lookup",
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["changelog", "release", "version"]]
   },
   {
     "id": "searxng_json_api",
     "category": "troubleshooting",
     "question": "How do you enable JSON search results in SearXNG?",
     "freshness": "year",
-    "expected_domains": ["docs.searxng.org", "github.com"]
+    "expected_domains": ["docs.searxng.org", "github.com"],
+    "expected_answer_strategy": "docs_lookup",
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_evidence_terms": ["JSON"]
   },
   {
     "id": "searxng_docker_install",
     "category": "troubleshooting",
     "question": "What is the recommended Docker setup for running SearXNG locally?",
     "freshness": "year",
-    "expected_domains": ["docs.searxng.org", "github.com"]
+    "expected_domains": ["docs.searxng.org", "github.com"],
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["Docker", "docker compose", "container"]]
   },
   {
     "id": "crawl4ai_usage",
     "category": "official_docs",
     "question": "How do I use Crawl4AI to extract markdown for LLM context?",
     "freshness": "year",
-    "expected_domains": ["github.com", "docs.crawl4ai.com"]
+    "expected_domains": ["github.com", "docs.crawl4ai.com"],
+    "expected_answer_strategy": "docs_lookup",
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["markdown", "crawler", "crawl"]]
   },
   {
     "id": "crawl4ai_async",
     "category": "official_docs",
     "question": "How does Crawl4AI async crawling work in Python?",
     "freshness": "year",
-    "expected_domains": ["docs.crawl4ai.com", "github.com"]
+    "expected_domains": ["docs.crawl4ai.com", "github.com"],
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["async", "AsyncWebCrawler"]]
   },
   {
     "id": "local_search_stack",
     "category": "comparison",
     "question": "What free local-first search stack works best with LM Studio?",
     "freshness": "month",
-    "expected_domains": ["docs.searxng.org", "lmstudio.ai", "github.com", "docs.crawl4ai.com"]
+    "expected_domains": ["docs.searxng.org", "lmstudio.ai", "github.com", "docs.crawl4ai.com"],
+    "expected_answer_strategy": "comparison",
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["SearXNG", "DuckDuckGo", "Crawl4AI"], ["LM Studio"]]
   },
   {
     "id": "free_vs_paid_search_providers",
     "category": "comparison",
     "question": "For an LM Studio web research assistant, when should I use free SearXNG instead of paid search APIs?",
     "freshness": "month",
-    "expected_domains": ["docs.searxng.org", "lmstudio.ai", "github.com"]
+    "expected_domains": ["docs.searxng.org", "lmstudio.ai", "github.com"],
+    "expected_answer_strategy": "comparison",
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["SearXNG", "search API"], ["LM Studio"]]
   },
   {
     "id": "korean_local_search_stack",
     "category": "korean",
-    "question": "로컬 LLM에서 실시간 웹검색을 무료로 붙이는 가장 좋은 방법은?",
+    "question": "로컬 LLM에서 실시간 웹 검색을 무료로 붙이는 가장 좋은 방법은?",
     "freshness": "month",
-    "expected_domains": ["github.com", "docs.searxng.org", "lmstudio.ai"]
+    "expected_domains": ["github.com", "docs.searxng.org", "lmstudio.ai"],
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["SearXNG", "DuckDuckGo", "Crawl4AI"], ["LM Studio"]]
   },
   {
     "id": "korean_searxng_json",
     "category": "korean",
     "question": "SearXNG에서 JSON 검색 결과를 켜려면 어떻게 설정해야 해?",
     "freshness": "year",
-    "expected_domains": ["docs.searxng.org", "github.com"]
+    "expected_domains": ["docs.searxng.org", "github.com"],
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_evidence_terms": ["JSON"]
   },
   {
     "id": "open_webui_lmstudio",
     "category": "integration",
     "question": "Can Open WebUI connect to LM Studio's local OpenAI-compatible server?",
     "freshness": "year",
-    "expected_domains": ["docs.openwebui.com", "lmstudio.ai", "github.com"]
+    "expected_domains": ["docs.openwebui.com", "lmstudio.ai", "github.com"],
+    "expected_answer_strategy": "current_fact",
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["OpenAI-compatible", "OpenAI compatible", "API"], ["LM Studio"]]
   },
   {
     "id": "lmstudio_mcp",
     "category": "integration",
     "question": "How does LM Studio support MCP tools or servers?",
     "freshness": "month",
-    "expected_domains": ["lmstudio.ai"]
+    "expected_domains": ["lmstudio.ai"],
+    "expected_answer_strategy": "current_fact",
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["MCP", "Model Context Protocol"], ["tool", "tools"]]
   },
   {
     "id": "local_cache_strategy",
     "category": "architecture",
     "question": "What cache strategy should a local realtime search assistant use for search results and fetched pages?",
     "freshness": "year",
-    "expected_domains": ["docs.searxng.org", "github.com"]
+    "expected_domains": ["docs.searxng.org", "github.com"],
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_evidence_terms": ["SQLite"],
+    "forbidden_answer_terms": ["Redis", "OpenSearch", "Elasticsearch"]
   },
   {
     "id": "citation_quality",
     "category": "architecture",
     "question": "How should a web-grounded local LLM assistant validate citations and weak sources?",
     "freshness": "year",
-    "expected_domains": ["github.com", "docs.searxng.org"]
+    "expected_domains": ["github.com", "docs.searxng.org"],
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["citation", "source", "evidence"]]
   },
   {
     "id": "lmstudio_context_tokens",
     "category": "troubleshooting",
     "question": "How should I balance context size and max_tokens for a reasoning model in LM Studio?",
     "freshness": "month",
-    "expected_domains": ["lmstudio.ai", "github.com"]
+    "expected_domains": ["lmstudio.ai", "github.com"],
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["context", "tokens", "max_tokens"], ["LM Studio"]]
+  },
+  {
+    "id": "qwen_reasoning_models",
+    "category": "benchmark",
+    "question": "What are the latest Qwen local reasoning model options for LM Studio, and what benchmark evidence is available?",
+    "freshness": "month",
+    "expected_domains": ["huggingface.co", "github.com", "lmstudio.ai", "qwenlm.github.io"],
+    "expected_answer_strategy": "benchmark",
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["Qwen", "Qwen3"], ["benchmark", "eval", "evaluation"]]
+  },
+  {
+    "id": "github_latest_release",
+    "category": "latest_release",
+    "question": "What is the latest release information for microsoft/playwright on GitHub?",
+    "freshness": "month",
+    "expected_domains": ["github.com"],
+    "allowed_search_backend_statuses": ["ok", "degraded", "empty"],
+    "required_any_evidence_terms": [["release", "tag", "version"], ["microsoft/playwright", "playwright"]]
   }
 ]

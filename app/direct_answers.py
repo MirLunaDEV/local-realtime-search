@@ -14,20 +14,20 @@ class DirectAnswer:
 
 _DATE_PATTERNS = (
     re.compile(r"\b(today|current date|what date|date today)\b", re.IGNORECASE),
-    re.compile(r"(오늘|현재).*(날짜|며칠|몇일)"),
-    re.compile(r"(날짜|며칠|몇일).*(오늘|현재)"),
+    re.compile(r"(오늘|현재).*(날짜|며칠|몇\s*일|무슨\s*날)"),
+    re.compile(r"(날짜|며칠|몇\s*일|무슨\s*날).*(오늘|현재)"),
 )
 _TIME_PATTERNS = (
-    re.compile(r"\b(current time|what time|time now)\b", re.IGNORECASE),
-    re.compile(r"(지금|현재).*(시간|몇 시|몇시)"),
-    re.compile(r"(시간|몇 시|몇시).*(지금|현재)"),
+    re.compile(r"\b(current time|what time|time now|what time is it)\b", re.IGNORECASE),
+    re.compile(r"(지금|현재).*(시간|몇\s*시|몇시)"),
+    re.compile(r"(시간|몇\s*시|몇시).*(지금|현재)"),
 )
 _KOREAN_RE = re.compile(r"[\u3131-\u318e\uac00-\ud7a3]")
 
 
-def _zoneinfo(timezone: str) -> ZoneInfo:
+def _zoneinfo(timezone_name: str) -> ZoneInfo:
     try:
-        return ZoneInfo(timezone)
+        return ZoneInfo(timezone_name)
     except ZoneInfoNotFoundError:
         return ZoneInfo("UTC")
 

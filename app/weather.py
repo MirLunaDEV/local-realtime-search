@@ -11,36 +11,23 @@ from app.evidence import EvidenceChunk
 from app.search.base import SearchResult
 
 
-_WEATHER_HINTS = (
-    "weather",
-    "forecast",
-    "temperature",
-    "rain",
-    "snow",
-    "날씨",
-    "예보",
-    "기온",
-    "비",
-    "눈",
-)
-
 _STRONG_WEATHER_HINTS = (
     "weather",
     "forecast",
     "temperature",
-    "\ub0a0\uc528",
-    "\uc608\ubcf4",
-    "\uae30\uc628",
-    "\uac15\uc218",
+    "날씨",
+    "예보",
+    "기온",
+    "강수",
 )
 
 _WEATHER_EVENT_PATTERNS = (
     r"\brain\b",
     r"\bsnow\b",
-    r"(?<![\uac00-\ud7a3])\ube44(?![\uac00-\ud7a3])",
-    r"(?<![\uac00-\ud7a3])\ub208(?![\uac00-\ud7a3])",
-    r"\ube44\s*(?:\uc640|\uc624|\uc62c|\ub0b4)",
-    r"\ub208\s*(?:\uc640|\uc624|\uc62c|\ub0b4)",
+    r"(?<![\uac00-\ud7a3])비(?![\uac00-\ud7a3])",
+    r"(?<![\uac00-\ud7a3])눈(?![\uac00-\ud7a3])",
+    r"비\s*(?:와|오|올|내)",
+    r"눈\s*(?:와|오|올|내)",
 )
 
 _LOCATION_ALIASES = {
@@ -68,12 +55,14 @@ _KOREAN_FILLERS = (
     "이번주",
     "날씨",
     "예보",
+    "기온",
     "알려줘",
     "어때",
     "비",
     "눈",
     "오나",
-    "와",
+    "올까",
+    "가능성",
 )
 
 
@@ -118,7 +107,7 @@ def extract_weather_location(question: str) -> str | None:
         if match:
             return _clean_location(match.group(1))
 
-    korean_match = re.search(r"([\uac00-\ud7a3A-Za-z\s]{2,40})\s*(?:날씨|예보)", question)
+    korean_match = re.search(r"([\uac00-\ud7a3A-Za-z\s]{2,40})\s*(?:날씨|예보|기온)", question)
     if korean_match:
         candidate = korean_match.group(1)
         for filler in _KOREAN_FILLERS:

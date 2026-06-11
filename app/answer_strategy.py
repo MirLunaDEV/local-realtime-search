@@ -62,8 +62,11 @@ def classify_answer_strategy(
             guidance="Compare recent benchmark evidence across multiple sources and surface uncertainty.",
         )
 
-    if any(term in lowered for term in ("compare", "vs", "versus", "alternative")) or any(
-        term in question for term in ("비교", "대체", "차이")
+    if any(
+        term in lowered
+        for term in ("best", "compare", "instead of", "tradeoff", "tradeoffs", "vs", "versus", "alternative")
+    ) or any(
+        term in question for term in ("가장 좋은", "비교", "대체", "차이")
     ):
         return AnswerStrategy(
             name="comparison",
@@ -75,7 +78,22 @@ def classify_answer_strategy(
             guidance="Compare options with source-backed claims and call out tradeoffs.",
         )
 
-    if any(term in lowered for term in ("docs", "documentation", "api", "release notes", "changelog")) or any(
+    if any(
+        term in lowered
+        for term in (
+            "api",
+            "changelog",
+            "docs",
+            "documentation",
+            "enable",
+            "how do i",
+            "how do you",
+            "install",
+            "release notes",
+            "setup",
+            "usage",
+        )
+    ) or any(
         term in question for term in ("문서", "공식", "릴리즈", "변경")
     ):
         return AnswerStrategy(

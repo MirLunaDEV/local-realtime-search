@@ -26,8 +26,22 @@ def test_strategy_detects_benchmark() -> None:
     assert "github_primary" in strategy.preferred_sources
 
 
+def test_strategy_detects_korean_benchmark() -> None:
+    strategy = classify_answer_strategy("최신 Qwen 9B 벤치마크 결과 알려줘")
+
+    assert strategy.name == "benchmark"
+    assert strategy.freshness == "month"
+
+
 def test_strategy_detects_comparison() -> None:
     strategy = classify_answer_strategy("Compare LM Studio MCP with Open WebUI search")
+
+    assert strategy.name == "comparison"
+    assert strategy.must_cite is True
+
+
+def test_strategy_detects_korean_comparison() -> None:
+    strategy = classify_answer_strategy("LM Studio MCP와 Open WebUI 검색을 비교해줘")
 
     assert strategy.name == "comparison"
     assert strategy.must_cite is True
@@ -38,3 +52,9 @@ def test_strategy_detects_docs_lookup() -> None:
 
     assert strategy.name == "docs_lookup"
     assert "official" in strategy.preferred_sources
+
+
+def test_strategy_detects_how_to_docs_lookup() -> None:
+    strategy = classify_answer_strategy("How do I use Crawl4AI to extract markdown for LLM context?", requested_freshness="year")
+
+    assert strategy.name == "docs_lookup"

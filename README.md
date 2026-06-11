@@ -256,7 +256,22 @@ With LM Studio, SearXNG, and the FastAPI service running:
 uv run python scripts/benchmark.py --out benchmark-results/latest.json
 ```
 
+For a quick smoke run:
+
+```powershell
+uv run python scripts/benchmark.py --category direct_answer --category weather --out benchmark-results/smoke.json
+```
+
+To inspect or run specific cases:
+
+```powershell
+uv run python scripts/benchmark.py --list-cases
+uv run python scripts/benchmark.py --case-id lmstudio_mcp --out benchmark-results/lmstudio-mcp.json
+```
+
 The benchmark records latency, citation count, expected-domain hits, warnings, and answer previews across mixed question types.
+
+Each case in [`benchmarks/questions.json`](benchmarks/questions.json) can also define quality gates such as `min_citations`, `expected_domains`, `expected_answer_strategy`, `allowed_search_backend_statuses`, `required_evidence_terms`, `required_any_evidence_terms`, and `forbidden_answer_terms`. Failed gates are reported per case in `failure_reasons`, so regressions are easier to diagnose than a single pass/fail number.
 
 Compare against a previous baseline:
 
@@ -267,9 +282,11 @@ uv run python scripts/benchmark.py `
   --compare-out benchmark-results/comparison.json `
   --fail-on-regression `
   --max-p90-regression-ms 5000 `
-  --min-success-rate 0.8 `
-  --min-expected-domain-rate 0.5
+  --min-success-rate 1.0 `
+  --min-expected-domain-rate 0.8
 ```
+
+Use `--mode deepsearch` for the heavier research suite when you want to stress large-context local models.
 
 ## How It Compares
 

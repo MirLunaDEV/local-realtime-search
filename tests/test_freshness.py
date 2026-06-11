@@ -12,3 +12,4 @@ def test_infer_freshness_detects_today_weather() -> None:
 
 def test_infer_freshness_detects_recent_updates() -> None:
     assert infer_freshness("latest LM Studio MCP changes", None) == "month"
+    assert infer_freshness("최신 Qwen 벤치마크 알려줘", None) == "month"

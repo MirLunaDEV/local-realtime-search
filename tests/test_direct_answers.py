@@ -1,7 +1,8 @@
+import pytest
+
 from app.config import Settings
 from app.direct_answers import maybe_direct_answer
 from app.pipeline import answer_question
-import pytest
 
 
 def test_maybe_direct_answer_handles_korean_today_date() -> None:
@@ -10,6 +11,15 @@ def test_maybe_direct_answer_handles_korean_today_date() -> None:
     assert answer is not None
     assert answer.label == "current_date"
     assert "오늘 날짜" in answer.answer
+    assert "Asia/Seoul" in answer.answer
+
+
+def test_maybe_direct_answer_handles_korean_current_datetime() -> None:
+    answer = maybe_direct_answer("오늘 날짜와 현재 시간이 뭐야?", "Asia/Seoul")
+
+    assert answer is not None
+    assert answer.label == "current_datetime"
+    assert "현재 날짜와 시간" in answer.answer
     assert "Asia/Seoul" in answer.answer
 
 
